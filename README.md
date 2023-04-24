@@ -1,2 +1,2 @@
-# ModileAir
-Portable air quality senso
+# MobileAir
+Portable air quality sensor.
