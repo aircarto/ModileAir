@@ -1,6 +1,8 @@
-# NebuleAir
+# MobileAir
 
-![nebulo_logo](https://aircarto.fr/images/nebuleair/LogoNebuleAir.png)
+REVOIR
+
+![mobileair_logo](https://aircarto.fr/images/mobileair/LogoMobileAir.png)
 
 New version of the air quality sensor NebuleAir developped with [AtmoSud](https://www.atmosud.org/).
 
@@ -9,6 +11,7 @@ New version of the air quality sensor NebuleAir developped with [AtmoSud](https:
 * Groupe Tera NextPM (PM1, PM2.5 and PM10)
 * CCS811 (COV)
 * BME280 (Temperature and Humidity)
+* Envea Cairsens (NO2)
 
 ## Displays
 * OLED SSD1306
@@ -24,7 +27,9 @@ New version of the air quality sensor NebuleAir developped with [AtmoSud](https:
 * 2dom/PxMatrix LED MATRIX library@^1.8.2
 * fastled/FastLED@^3.4.0
 * mcci-catena/MCCI LoRaWAN LMIC library@^4.1.1
-* ThingPulse/ESP8266 and ESP32 OLED driver for SSD1306 displays @ ^4.2.1
+* sparkfun/SparkFun_LTE_Shield_Arduino_Library@^1.3.0
+* Lahorde/cairsens_uart
+* plerup/EspSoftwareSerial@^8.0.1
 
 And the ESP32 platform librairies:
 * Wire
@@ -41,6 +46,8 @@ And the ESP32 platform librairies:
 ## Boards
 The code is developped on a ESP32 DevC with 38 pins (equiped with a ESP-WROOM-32 module). More information about this board on the official [Espressif website](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/hw-reference/esp32/get-started-devkitc.html).
 
+The development was made with the NBIoT board [SparkFun LTE CAT M1/NB-IoT Shield - SARA-R4](https://www.sparkfun.com/products/14997).
+
 ## Flashing
 
 Please use Platformio to flash the board.
@@ -48,6 +55,7 @@ The .ini file should be able to get all the needed boards, platforms and librari
 
 ## Pin mapping
 
+ADD GPS
 
 |GPIO| devices | notes |
 |----|-----|-----|
@@ -55,36 +63,38 @@ The .ini file should be able to get all the needed boards, platforms and librari
 |GPI01| TX | USB Serial |
 |GPIO2| unused | Inboard LED |
 |GPIO3| RX | USB Serial |
-|GPIO4| unused | notes |
+|GPIO4| unused |  |
 |GPIO5| 📶 lora NSS | notes |
-|GPIO6| &#x1F6D1;	 | integrated SPI flash |
+|GPIO6| &#x1F6D1; | integrated SPI flash |
 |GPIO7| &#x1F6D1; | integrated SPI flash |
 |GPIO8| &#x1F6D1; | integrated SPI flash |
 |GPIO9| &#x1F6D1; | integrated SPI flash |
 |GPIO10| &#x1F6D1; | integrated SPI flash |
 |GPIO11| &#x1F6D1; | integrated SPI flash |
-|GPIO12| unused | notes |
-|GPIO13| unused | notes |
-|GPIO14| unused | notes |
-|GPIO15| unused | notes |
-|GPIO16| unused | notes |
-|GPIO17| unused | notes |
-|GPIO18| 📶 lora SCK | notes |
-|GPIO19| 📶 lora MISO | notes |
-|GPIO21| SDA sensors | notes |
-|GPIO22| SCL sensors | notes |
-|GPIO23| 📶 lora MOSI | notes |
-|GPIO25| unused | notes |
-|GPIO26| 📶 lora DIO0 | notes |
-|GPIO27|  | |
-|GPIO32| NextPM RX | notes |
-|GPIO33| 💡LEDs | notes |
-|GPIO34| 📶 lora DIO2 | notes |
-|GPIO35| 📶 lora DIO1 | notes |
-|GPIO36|  | |
-|GPIO39| NextPM TX | notes |
+|GPIO12| unused |  |
+|GPIO13| unused |  |
+|GPIO14| unused |  |
+|GPIO15| unused |  |
+|GPIO16| Cairsens RX |  |
+|GPIO17| Cairsens TX |  |
+|GPIO18| 📶 lora SCK |  |
+|GPIO19| 📶 lora MISO |  |
+|GPIO21| SDA sensors |  |
+|GPIO22| SCL sensors |  |
+|GPIO23| 📶 lora MOSI |  |
+|GPIO25| unused |  |
+|GPIO26| 📶 lora DIO0 |  |
+|GPIO27| SARA-R4 TX | |
+|GPIO32| NextPM RX |  |
+|GPIO33| 💡LEDs |  |
+|GPIO34| 📶 lora DIO2 |  |
+|GPIO35| 📶 lora DIO1 |  |
+|GPIO36| SARA-R4 RX | |
+|GPIO39| NextPM TX |  |
 
 ## PCB
+
+REVOIR
 
 You can find the PCB layout [here](https://oshwlab.com/pvuarambon/nebulov2_esp32).
 
@@ -110,6 +120,9 @@ The payload consists in a 24 bytes (declared as a 25 according to the LMIC libra
 
 The value are initialised for the first uplink at the end of the void setup() which is send according to the LMIC library examples.
 
+ADD GPS + SELECTOR
+
+
 ```
 0x00, config = 0 (see below)
 0xff, 0xff, sds PM10 = -1
@@ -124,6 +137,7 @@ The value are initialised for the first uplink at the end of the void setup() wh
 0xff, 0x80, bme temp = -128
 0xff,       bme rh = -1
 0xff, 0xff, bme press = -1
+0xff, 0xff, cairsens no2 = -1
 ```
 
 Those default values will be replaced during the normal use of the station according to the selected sensors.
@@ -135,9 +149,9 @@ configlorawan[0] = cfg::sds_read;
 configlorawan[1] = cfg::npm_read;
 configlorawan[2] = cfg::bmx280_read;
 configlorawan[3] = cfg::ccs811_read;
-configlorawan[4] = cfg::has_led_value;
-configlorawan[5] = false;
-configlorawan[6] = cfg::rgpd;
+configlorawan[4] = cfg::enveano2_read;
+configlorawan[5] = cfg::rgpd;
+configlorawan[6] = cfg::has_nbiot;
 configlorawan[7] = cfg::has_wifi;
 ```
 
@@ -151,6 +165,45 @@ The station as a SDS011, a BME280, activated LEDs for value, activated LEDs for 
 The LoRaWAN server has to get the forecast data and transmit by downlink. Because the WiFi is not activated the uplink sensor data has to be sent to the databases.
 
 If wifi is activated it is useless to decode the uplinks and transmit some downlinks because everything is already done though API calls and POST requests.
+
+## NBIoT payload
+
+The data can be transmitted as a JSON (see below for WiFi) or as bytes (octet-stream in a POST request). The option is in the configuration interface.
+
+The payload passed in the body of the POST request consists in a 27 bytes array with a 0 terminator 0x00 at the last position. This terminator is mandatory to close the setup of the transmitted data.
+
+```
+0x00, config = 0 (see below)
+0xff, 0xff, sds PM10 = -1
+0xff, 0xff, sds PM2.5 = -1
+0xff, 0xff, npm PM10 = -1
+0xff, 0xff, npm PM2.5 = -1
+0xff, 0xff, npm PM1 = -1
+0xff, 0xff, npm_nc -1
+0xff, 0xff, npm_nc -1
+0xff, 0xff, npm_nc -1
+0xff, 0xff, ccs811 -1
+0xff, 0x80, bme temp = -128
+0xff,       bme rh = -1
+0xff, 0xff, bme press = -1
+0xff, 0xff, cairsens no2 = -1
+0x00
+```
+
+The first byte is the configuation summary, representeed as an array of 0/1 for false/true:
+
+```
+confignbiot[0] = cfg::sds_read;
+confignbiot[1] = cfg::npm_read;
+confignbiot[2] = cfg::bmx280_read;
+confignbiot[3] = cfg::ccs811_read;
+confignbiot[4] = cfg::enveano2_read;
+confignbiot[5] = cfg::rgpd;
+confignbiot[6] = cfg::has_lora;
+confignbiot[7] = cfg::has_wifi;
+```
+
+If the data is sent as byte, the sensor ID and the signal strength are sent as headers of the POST request.
 
 ## WiFi payload
 
@@ -182,6 +235,6 @@ if (view1.getUint8(0) < 0 || view1.getUint8(0) > 255 || view1.getUint8(0) % 1 !=
       throw new Error(byte+ " does not fit in a byte");
   }
   
-return {"configuration":("000000000" + view1.getUint8(0).toString(2)).substr(-8),"PM1_SDS":view2.getInt16(1).toString(),"PM2_SDS":view2.getInt16(3).toString(),"PM0_NPM":view1.getInt16(5).toString(),"PM1_NPM":view1.getInt16(7).toString(),"PM2_NPM":view1.getInt16(9).toString(),"N1_NPM":view1.getInt16(11).toString(),"N10_NPM":view1.getInt16(13).toString(),"N25_NPM":view1.getInt16(15).toString(),"VOC_CCS811":view2.getInt16(17).toString(),"T_BME":view2.getInt8(19).toString(),"H_BME":view2.getInt8(21).toString(),"P_BME":view2.getInt16(22).toString();  
+return {"configuration":("000000000" + view1.getUint8(0).toString(2)).substr(-8),"PM1_SDS":view2.getInt16(1).toString(),"PM2_SDS":view2.getInt16(3).toString(),"PM0_NPM":view1.getInt16(5).toString(),"PM1_NPM":view1.getInt16(7).toString(),"PM2_NPM":view1.getInt16(9).toString(),"N1_NPM":view1.getInt16(11).toString(),"N10_NPM":view1.getInt16(13).toString(),"N25_NPM":view1.getInt16(15).toString(),"VOC_CCS811":view2.getInt16(17).toString(),"T_BME":view2.getInt8(19).toString(),"H_BME":view2.getInt8(21).toString(),"P_BME":view2.getInt16(22).toString(),"NO2":view2.getInt16(24).toString();  
 }
 ```
