@@ -120,3 +120,4 @@ const char INTL_LORA_ACTIVATION[] = "";
 const char INTL_WIFI_ACTIVATION[] = "";
 
 #include "./aircarto-logo-common.h"
+#include "./logos-custom.h"

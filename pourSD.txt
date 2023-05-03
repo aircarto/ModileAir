@@ -1,0 +1,4 @@
+static const uint8_t SS_H    = 4;
+static const uint8_t MOSI  = 13;
+static const uint8_t MISO  = 12;
+static const uint8_t SCK   = 14;

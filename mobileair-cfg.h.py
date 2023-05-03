@@ -50,6 +50,10 @@ UInt		port_custom2
 String		user_custom2
 Password	pwd_custom2
 Bool		ssl_custom2
+Bool        has_sdcard
+Bool		display_measure
+Bool		display_device_info
+Bool        has_gps
 """
 
 with open("mobileair-cfg.h", "w") as h:

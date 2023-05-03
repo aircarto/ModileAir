@@ -121,3 +121,4 @@ const char INTL_LORA_ACTIVATION[] = "Activate LoRaWAN commnication";
 const char INTL_WIFI_ACTIVATION[] = "Activate WiFi communication";
 
 #include "./aircarto-logo-common.h"
+#include "./logos-custom.h"

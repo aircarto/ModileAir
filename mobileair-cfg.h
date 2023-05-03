@@ -75,6 +75,10 @@ enum ConfigShapeId {
 	Config_user_custom2,
 	Config_pwd_custom2,
 	Config_ssl_custom2,
+	Config_has_sdcard,
+	Config_display_measure,
+	Config_display_device_info,
+	Config_has_gps,
 };
 static constexpr char CFG_KEY_HAS_WIFI[] PROGMEM = "has_wifi";
 static constexpr char CFG_KEY_HAS_LORA[] PROGMEM = "has_lora";
@@ -125,6 +129,10 @@ static constexpr char CFG_KEY_PORT_CUSTOM2[] PROGMEM = "port_custom2";
 static constexpr char CFG_KEY_USER_CUSTOM2[] PROGMEM = "user_custom2";
 static constexpr char CFG_KEY_PWD_CUSTOM2[] PROGMEM = "pwd_custom2";
 static constexpr char CFG_KEY_SSL_CUSTOM2[] PROGMEM = "ssl_custom2";
+static constexpr char CFG_KEY_HAS_SDCARD[] PROGMEM = "has_sdcard";
+static constexpr char CFG_KEY_DISPLAY_MEASURE[] PROGMEM = "display_measure";
+static constexpr char CFG_KEY_DISPLAY_DEVICE_INFO[] PROGMEM = "display_device_info";
+static constexpr char CFG_KEY_HAS_GPS[] PROGMEM = "has_gps";
 static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_WIFI, &cfg::has_wifi },
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_LORA, &cfg::has_lora },
@@ -175,4 +183,8 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_String, sizeof(cfg::user_custom2)-1, CFG_KEY_USER_CUSTOM2, cfg::user_custom2 },
 	{ Config_Type_Password, sizeof(cfg::pwd_custom2)-1, CFG_KEY_PWD_CUSTOM2, cfg::pwd_custom2 },
 	{ Config_Type_Bool, 0, CFG_KEY_SSL_CUSTOM2, &cfg::ssl_custom2 },
+	{ Config_Type_Bool, 0, CFG_KEY_HAS_SDCARD, &cfg::has_sdcard },
+	{ Config_Type_Bool, 0, CFG_KEY_DISPLAY_MEASURE, &cfg::display_measure },
+	{ Config_Type_Bool, 0, CFG_KEY_DISPLAY_DEVICE_INFO, &cfg::display_device_info },
+	{ Config_Type_Bool, 0, CFG_KEY_HAS_GPS, &cfg::has_gps },
 };

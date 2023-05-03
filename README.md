@@ -1,10 +1,8 @@
-# MobileAir
+# MobileAir NBIoT
 
-REVOIR
+![nebulo_logo](https://aircarto.fr/images/mobileair/LogoMobileAir.png)
 
-![mobileair_logo](https://aircarto.fr/images/mobileair/LogoMobileAir.png)
-
-New version of the air quality sensor NebuleAir developped with [AtmoSud](https://www.atmosud.org/).
+New version of the air quality sensor MobileAir developped with [AtmoSud](https://www.atmosud.org/).
 
 ## Supported sensors
 * Nova PM SDS011 (PM2.5 and PM10)
@@ -14,12 +12,11 @@ New version of the air quality sensor NebuleAir developped with [AtmoSud](https:
 * Envea Cairsens (NO2)
 
 ## Displays
-* OLED SSD1306
 * WS2812B RGB LED
 
 ## Features
 * Gets measurements from a full range of sensors
-* Transmits data with WiFi or LoRaWAN to different databases
+* Transmits data with WiFi, LoRaWAN or NBIoT to different databases
 * Fully configurable through a web interface
 
 ## Libraries
@@ -55,7 +52,6 @@ The .ini file should be able to get all the needed boards, platforms and librari
 
 ## Pin mapping
 
-ADD GPS
 
 |GPIO| devices | notes |
 |----|-----|-----|
@@ -94,34 +90,34 @@ ADD GPS
 
 ## PCB
 
-REVOIR
-
 You can find the PCB layout [here](https://oshwlab.com/pvuarambon/nebulov2_esp32).
 
 ## Configuration
 
 The process is the same as for the Sensor.Community firmware.
-On the first start, the sation won't find any known network and it will go in AP mode producing a moduleair-XXXXXXX network. Connect to it from a PC or a smartphone and open the address http://192.168.4.1.
-If needed, the password is moduleaircfg.
+On the first start, the sation won't find any known network and it will go in AP mode producing a mobileair-XXXXXXX network. Connect to it from a PC or a smartphone and open the address http://192.168.4.1.
+If needed, the password is mobileaircfg.
 
 For the WiFi connection: type your credentials
 For the LoRaWAN connection : type the APPEUI, DEVEUI and APPKEY as created in the Helium or TTN console.
 
-Choose the sensors, the displays and the API in the different tabs. For coding reason, it was not possible to use radios for the PM sensors and the CO2 sensors. Please don't check both sensors of the same type to avoid problems…
+Choose the sensors, the displays and the API in the different tabs. For coding reason, it was not possible to use radios for the PM sensors. Please don't check both sensors of the same type to avoid problems…
 
 Please don't decrease the measuring interval to spare connection time.
 
-If the checkbox "WiFi transmission" is not checked, the station will stay in AP mode for 10 minutes and then the LoRaWAN transmission will start. During those 10 minutes or after a restart, you can change the configuration.
+If the checkbox "WiFi transmission" is not checked, the station will stay in AP mode for 2 minutes and then the LoRaWAN or NBIoT transmissions will start if selected. During those 2 minutes or after a restart, you can change the configuration.
 
-If the checkbox "WiFi transmission" is checked, the sensor will be always accessible through your router with an IP addess : 192.168.<0 or more>.<100, 101, 102…>. In that case the data streams will use WiFi and not LoRaWAN (even if it is checked).
+If the checkbox "WiFi transmission" is checked, the sensor will be always accessible through your router with an IP addess : 192.168.<0 or more>.<100, 101, 102…>.
+
+## Configuration NBIoT
+
+The NBIoT (LTE) network should be already set. To change it, it is possible to check a checkbox and restart to force the display off all the networks. Type then the number of the network in the dedicated field and save it with the button. Don't forget to uncheck the configuration checkbox and restart.
 
 ## LoRaWAN payload
-The payload consists in a 24 bytes (declared as a 25 according to the LMIC library) array.
 
-The value are initialised for the first uplink at the end of the void setup() which is send according to the LMIC library examples.
+The payload consists in a 26 bytes (declared as a 27 according to the LMIC library) array.
 
-ADD GPS + SELECTOR
-
+The values are initialised for the first uplink at the end of the void setup() which is send according to the LMIC library examples.
 
 ```
 0x00, config = 0 (see below)
@@ -160,11 +156,9 @@ It produce single byte which will have to be decoded on server side.
 For example:
 
 10101110 (binary) = 0xAE (hexbyte) =174 (decimal)
-The station as a SDS011, a BME280, activated LEDs for value, activated LEDs for connection state, RGPD (european privacy law) is checked, the WiFi is not activated.
+The station as a SDS011, a BME280, a Cairsens NO2, RGPD (european privacy law) is checked, the NBIoT is activated, the WiFi is not activated.
 
-The LoRaWAN server has to get the forecast data and transmit by downlink. Because the WiFi is not activated the uplink sensor data has to be sent to the databases.
-
-If wifi is activated it is useless to decode the uplinks and transmit some downlinks because everything is already done though API calls and POST requests.
+If wifi is activated it is useless to decode the uplinks and transmit some downlinks because everything is already done through POST requests.
 
 ## NBIoT payload
 
@@ -210,6 +204,8 @@ If the data is sent as byte, the sensor ID and the signal strength are sent as h
 Example for transmited data:
 
 `{"software_version" : "ModuleAirV2-V1-122021", "sensordatavalues" : [ {"value_type" : "NPM_P0", "value" : "1.84"}, {"value_type" : "NPM_P1", "value" : "2.80"}, {"value_type" : "NPM_P2", "value" : "2.06"}, {"value_type" : "NPM_N1", "value" : "27.25"}, {"value_type" : "NPM_N10", "value" : "27.75"}, {"value_type" : "NPM_N25", "value" : "27.50"}, {"value_type" : "BME280_temperature", "value" : "20.84"}, {"value_type" : "BME280_pressure", "value" : "99220.03"}, {"value_type" : "BME280_humidity", "value" : "61.66"}, {"value_type" : "samples", "value" : "138555"}, {"value_type" : "min_micro", "value" : "933"}, {"value_type" : "max_micro", "value" : "351024"}, {"value_type" : "interval", "value" : "145000"}, {"value_type" : "signal", "value" : "-71"} ]}`
+
+https is newly implemented.
 
 ## Payload formaters
 

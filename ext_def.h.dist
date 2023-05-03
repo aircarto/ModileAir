@@ -28,6 +28,7 @@ const char WWW_PASSWORD[] PROGMEM = "";
 // APN -- Access Point Name. Gateway between GPRS MNO
 // and another computer network. E.g. "hologram
 const char APN[] PROGMEM = "hologram";  // AVOIR POUR CONFIG
+#define NBIOT_FORMAT 0
 
 //LoRaWAN
 
@@ -122,10 +123,11 @@ static const char URL_CUSTOM2[] PROGMEM = "/data.php";
 #define ENVEANO2_READ 0
 // #define ENVEANO2_API_PIN X
 
+#define HAS_SSD1306 0
 #define HAS_LED_VALUE 1
 //#define LEDS_NB 64
 //#define LEDS_NB 1 //for monoLED
- #define LEDS_NB 8 //for LEDline
+#define LEDS_NB 8 //for LEDline
 //#define LEDS_MATRIX true 
 #define LEDS_MATRIX false // for lEDline  
 #define BRIGHTNESS 50
@@ -137,3 +139,11 @@ static const char URL_CUSTOM2[] PROGMEM = "/data.php";
 #define DEBUG 5
 
 static const char URL_API_SENSORCOMMUNITY[] PROGMEM = "https://data.sensor.community/airrohr/v1/sensor/";
+
+#define DISPLAY_MEASURE 0
+#define DISPLAY_DEVICE_INFO 0
+
+#define HAS_GPS 0
+#define HAS_SDCARD 0
+
+
