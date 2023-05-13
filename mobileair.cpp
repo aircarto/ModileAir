@@ -210,17 +210,18 @@ static byte booltobyte(bool array[8])
 }
 
 // define size of the config JSON
-#define JSON_BUFFER_SIZE 2300
-// define size of the AtmoSud Forecast API JSON
-#define JSON_BUFFER_SIZE2 200
+#define JSON_BUFFER_SIZE 2300   //REVOIR TAILLE
 
 LoggerConfig loggerConfigs[LoggerCount];
 
 // test variables
 long int sample_count = 0;
+unsigned long count_recorded = 0;
 bool bmx280_init_failed = false;
 bool ccs811_init_failed = false;
 bool mobileair_selftest_failed = false;
+bool file_created;
+
 
 WebServer server(80);
 
@@ -1160,6 +1161,7 @@ unsigned long starttime_waiter;
 #define serialNPM (Serial1)
 #define serialNBIOT (Serial2)
 EspSoftwareSerial::UART serialNO2; //Serial3
+EspSoftwareSerial::UART serialGPS; //Serial4
 
 /*****************************************************************
  * NBIoT stuff                                     *
@@ -1184,7 +1186,7 @@ int opsAvailable;
 String currentApn = "";
 IPAddress ip(0, 0, 0, 0);
 
-uint8_t datanbiot[LEN_PAYLOAD_NBIOT] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00};
+uint8_t datanbiot[LEN_PAYLOAD_NBIOT] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 									   //conf |   sds	|	 sds    |    npm   | 	 npm   | 	npm	   |   npm	   |	npm	   |	npm	     |	 cov    |    temp   | humi |   press   |  no2
 
 //27 valeur doit être a 0x00!!! zero terminator
@@ -1217,6 +1219,13 @@ CCS811 ccs811(-1);
  * Envea Cairsens declaration                                        *
  *****************************************************************/
 CairsensUART cairsens(&serialNO2);
+
+/*****************************************************************
+ * GPS declaration                                        *
+ *****************************************************************/
+
+TinyGPSPlus gps;
+
 
 /*****************************************************************
  * Time                                       *
@@ -1350,6 +1359,7 @@ uint32_t ccs811_sum = 0;
 uint16_t ccs811_val_count = 0;
 
 String last_data_string;
+String last_datacsv_string;
 int last_signal_strength_wifi;
 int last_signal_strength_nbiot;
 int last_signal_strength_lorawan;
@@ -1965,6 +1975,125 @@ static float dew_point(const float temperature, const float humidity)
 	return dew_temp;
 }
 
+
+/*****************************************************************
+ * GPS                                                     *
+ *****************************************************************/
+
+bool coordinates;
+
+bool newGPSdata = false;
+
+struct GPS
+{
+	uint16_t year;
+	uint8_t month;
+	uint8_t day;
+	uint8_t hour;
+	uint8_t minute;
+	uint8_t second;
+	double latitude;
+	double longitude;
+	double altitude;
+	bool checked;
+};
+
+struct GPS GPSdata
+{
+	0, 0, 0, 0, 0, 0, -1.0, -1.0, -1.0, false
+};
+
+static struct GPS getGPSdata()
+{
+
+	struct GPS result;
+	Debug.print(F("Location: "));
+	if (gps.location.isValid())
+	{
+		Debug.print(gps.location.lat(), 6);
+		Debug.print(F(","));
+		Debug.print(gps.location.lng(), 6);
+		Debug.print(F(" | "));
+
+		result.latitude = gps.location.lat();
+		result.longitude = gps.location.lng();
+	}
+	else
+	{
+		Debug.print(F("INVALID"));
+		Debug.println();
+		result.checked = false;
+		return result;
+	}
+
+	Debug.print(F("Altitude: "));
+	if (gps.altitude.isValid())
+	{
+		Debug.print(gps.altitude.meters());
+		Debug.print(F(" | "));
+		result.altitude = gps.altitude.meters();
+	}
+	else
+	{
+		Debug.print(F("INVALID"));
+		result.checked = false;
+		Debug.println();
+		return result;
+	}
+
+	Debug.print(F("Date/Time: "));
+	if (gps.date.isValid())
+	{
+		Debug.print(gps.date.month());
+		Debug.print(F("/"));
+		Debug.print(gps.date.day());
+		Debug.print(F("/"));
+		Debug.print(gps.date.year());
+
+		result.month = gps.date.month();
+		result.day = gps.date.day();
+		result.year = gps.date.year();
+	}
+	else
+	{
+		Debug.print(F("INVALID"));
+		Debug.println();
+		result.checked = false;
+		return result;
+	}
+
+	Debug.print(F(" "));
+	if (gps.time.isValid())
+	{
+		if (gps.time.hour() < 10)
+			Debug.print(F("0"));
+		Debug.print(gps.time.hour());
+		Debug.print(F(":"));
+		if (gps.time.minute() < 10)
+			Debug.print(F("0"));
+		Debug.print(gps.time.minute());
+		Debug.print(F(":"));
+		if (gps.time.second() < 10)
+			Debug.print(F("0"));
+		Debug.print(gps.time.second());
+
+		result.hour = gps.time.hour();
+		result.minute = gps.time.minute();
+		result.second = gps.time.second();
+	}
+	else
+	{
+		Debug.print(F("INVALID"));
+		Debug.println();
+		result.checked = false;
+		return result;
+	}
+
+	Debug.println();
+	result.checked = true;
+	return result;
+}
+
 /*****************************************************************
  * Pressure at sea level function                                     *
  *****************************************************************/
@@ -1972,7 +2101,12 @@ static float pressure_at_sealevel(const float temperature, const float pressure)
 {
 	float pressure_at_sealevel;
 
-	pressure_at_sealevel = pressure * pow(((temperature + 273.15f) / (temperature + 273.15f + (0.0065f * readCorrectionOffset(cfg::height_above_sealevel)))), -5.255f);
+	if(cfg::has_gps && GPSdata.checked){
+	pressure_at_sealevel = pressure * pow(((temperature + 273.15f) / (temperature + 273.15f + (0.0065f * readCorrectionOffset(String(GPSdata.altitude).c_str())))), -5.255f);
+	}else
+	{
+	pressure_at_sealevel = pressure * pow(((temperature + 273.15f) / (temperature + 273.15f + (0.0065f * readCorrectionOffset("0")))), -5.255f);
+	}
 
 	return pressure_at_sealevel;
 }
@@ -4730,6 +4864,56 @@ static void fetchSensorCairsens(String &s)
 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(sensor_name));
 }
 
+
+// /*****************************************************************
+//  * read GPS values                              *
+//  *****************************************************************/
+// static void fetchGPScoordinates(String &s)
+// {
+// 	const char *const gps_name = GPS_BN220;
+// 	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(gps_name));
+
+// 	uint8_t no2_val = 0;
+
+// 	if (cairsens.getNO2InstantVal(no2_val) == CairsensUART::NO_ERROR)
+// 	{
+// 		no2_sum += no2_val;
+// 		no2_val_count++;
+// 		debug_outln(String(no2_val_count), DEBUG_MAX_INFO);
+// 	}
+// 	else
+// 	{
+// 		Debug.println("Could not get Cairsens NOX value");
+// 	}
+
+// 	if (send_now && cfg::sending_intervall_ms == 120000)
+// 	{
+// 		last_value_no2 = -1.0f;
+
+// 		if (no2_val_count >= 12)
+// 		{
+// 			last_value_no2 = CairsensUART::ppbToPpm(CairsensUART::NO2, float(no2_sum / no2_val_count));
+// 			add_Value2Json(s, F("Cairsens_NO2"), FPSTR(DBG_TXT_NO2PPB), last_value_no2);
+// 			debug_outln_info(FPSTR(DBG_TXT_SEP));
+// 		}
+// 		else
+// 		{
+// 			Cairsens_error_count++;
+// 		}
+
+// 		no2_sum = 0;
+// 		no2_val_count = 0;
+// 	}
+
+// 	debug_outln_info(FPSTR(DBG_TXT_SEP));
+// 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(sensor_name));
+// }
+
+
+
+//REVOIR LE GPS
+
+
 /*****************************************************************
  * read SDS011 sensor values                                     *
  *****************************************************************/
@@ -4788,8 +4972,8 @@ static void fetchSensorSDS(String &s)
 	}
 	if (send_now && cfg::sending_intervall_ms >= 120000)
 	{
-		last_value_SDS_P1 = -1;
-		last_value_SDS_P2 = -1;
+		last_value_SDS_P1 = -1.0f;
+		last_value_SDS_P2 = -1.0f;
 		if (sds_val_count > 2)
 		{
 			sds_pm10_sum = sds_pm10_sum - sds_pm10_min - sds_pm10_max;
@@ -5202,6 +5386,44 @@ static void powerOnTestSensors()
 			ccs811_init_failed = true;
 		}
 	}
+
+	if (cfg::has_sdcard)
+	{
+
+		if (!SD.begin(SD_SPI_BUS_SS, SD_SPI_BUS_MOSI, SD_SPI_BUS_MISO, SD_SPI_BUS_CLK))
+		{
+			Debug.println("Card Mount Failed");
+			return;
+		}
+		uint8_t cardType = SD.cardType();
+
+		if (cardType == CARD_NONE)
+		{
+			Debug.println("No SD card attached");
+			return;
+		}
+
+		Debug.print("SD Card Type: ");
+		if (cardType == CARD_MMC)
+		{
+			Debug.println("MMC");
+		}
+		else if (cardType == CARD_SD)
+		{
+			Debug.println("SDSC");
+		}
+		else if (cardType == CARD_SDHC)
+		{
+			Debug.println("SDHC");
+		}
+		else
+		{
+			Debug.println("UNKNOWN");
+		}
+
+		uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+		Debug.printf("SD Card Size: %lluMB\n", cardSize);
+	}
 }
 
 static void logEnabledAPIs()
@@ -5377,8 +5599,8 @@ void os_getDevKey(u1_t *buf) { memcpy_P(buf, appkey_hex, 16); }
 
 //Initialiser avec les valeurs -1.0,-128.0 = valeurs par défaut qui doivent être filtrées
 
-uint8_t datalora[LEN_PAYLOAD_LORA] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0xff, 0xff, 0xff, 0xff, 0xff};
-//		    			              conf |   sds	|	 sds    |    npm   | 	 npm   | 	npm	   |   npm	   |	npm	   |	npm	     |	 cov    |    temp   | humi |   press   |  no2
+uint8_t datalora[LEN_PAYLOAD_LORA] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+//		    			              conf |   sds  	|	 sds    |    npm   | 	 npm   | 	npm	   |   npm	   |	npm	   |	npm	     |	 cov    |    temp   | humi |   press   |  no2
 
 //Peut-être changer l'indianess pour temp = inverser
 
@@ -5634,6 +5856,12 @@ static void prepareTxFrameLoRa()
 		byte temp_byte[2];
 	} u1;
 
+    union float_2_byte
+    {
+        float temp_float;
+        byte temp_byte[4];
+    } u2;
+
 	// union uint16_2_byte
 	// {
 	// 	uint16_t temp_uint;
@@ -5767,6 +5995,20 @@ static void prepareTxFrameLoRa()
 	datalora[24] = u1.temp_byte[1];
 	datalora[25] = u1.temp_byte[0];
 
+	u2.temp_float = (float)GPSdata.latitude;
+
+    datalora[26] = u2.temp_byte[0];
+    datalora[27] = u2.temp_byte[1];
+    datalora[28] = u2.temp_byte[2];
+    datalora[29] = u2.temp_byte[3];
+
+    u2.temp_float = (float)GPSdata.longitude;
+
+    datalora[30] = u2.temp_byte[0];
+    datalora[31] = u2.temp_byte[1];
+    datalora[32] = u2.temp_byte[2];
+    datalora[33] = u2.temp_byte[3];
+
 	Debug.printf("HEX values:\n");
 	for (int i = 0; i < LEN_PAYLOAD_LORA - 1; i++)
 	{
@@ -5807,6 +6049,12 @@ static void prepareTxFrameNBIoT()
 		int16_t temp_int;
 		byte temp_byte[2];
 	} u1;
+
+	union float_2_byte
+	{
+		float temp_float;
+		byte temp_byte[4];
+	} u2;
 
 	// union uint16_2_byte
 	// {
@@ -5941,6 +6189,21 @@ static void prepareTxFrameNBIoT()
 	datanbiot[24] = u1.temp_byte[1];
 	datanbiot[25] = u1.temp_byte[0];
 
+	u2.temp_float = (float)GPSdata.latitude;
+
+	datalora[26] = u2.temp_byte[0];
+	datalora[27] = u2.temp_byte[1];
+	datalora[28] = u2.temp_byte[2];
+	datalora[29] = u2.temp_byte[3];
+
+	u2.temp_float = (float)GPSdata.longitude;
+
+	datalora[30] = u2.temp_byte[0];
+	datalora[31] = u2.temp_byte[1];
+	datalora[32] = u2.temp_byte[2];
+	datalora[33] = u2.temp_byte[3];
+
+
 	Debug.printf("HEX values:\n");
 	for (int i = 0; i < LEN_PAYLOAD_NBIOT - 1; i++)
 	{
@@ -6073,6 +6336,217 @@ void *StackPtrAtStart;
 void *StackPtrEnd;
 UBaseType_t watermarkStart;
 
+
+/*****************************************************************
+ * SD card                                                  *
+ *****************************************************************/
+
+// char data_file[24];
+
+String file_name;
+
+static void listDir(fs::FS &fs, const char *dirname, uint8_t levels)
+{
+	Debug.printf("Listing directory: %s\n", dirname);
+
+	File root = fs.open(dirname);
+	if (!root)
+	{
+		Debug.println("Failed to open directory");
+		return;
+	}
+	if (!root.isDirectory())
+	{
+		Debug.println("Not a directory");
+		return;
+	}
+
+	File file = root.openNextFile();
+	while (file)
+	{
+		if (file.isDirectory())
+		{
+			Debug.print("  DIR : ");
+			Debug.println(file.name());
+			if (levels)
+			{
+				listDir(fs, file.name(), levels - 1);
+			}
+		}
+		else
+		{
+			Debug.print("  FILE: ");
+			Debug.print(file.name());
+			Debug.print("  SIZE: ");
+			Debug.println(file.size());
+		}
+		file = root.openNextFile();
+	}
+}
+
+static void createDir(fs::FS &fs, const char *path)
+{
+	Debug.printf("Creating Dir: %s\n", path);
+	if (fs.mkdir(path))
+	{
+		Debug.println("Dir created");
+	}
+	else
+	{
+		Debug.println("mkdir failed");
+	}
+}
+
+static void removeDir(fs::FS &fs, const char *path)
+{
+	Debug.printf("Removing Dir: %s\n", path);
+	if (fs.rmdir(path))
+	{
+		Debug.println("Dir removed");
+	}
+	else
+	{
+		Debug.println("rmdir failed");
+	}
+}
+
+static void readFile(fs::FS &fs, const char *path)
+{
+	Debug.printf("Reading file: %s\n", path);
+
+	File file = fs.open(path);
+	if (!file)
+	{
+		Debug.println("Failed to open file for reading");
+		return;
+	}
+
+	Debug.print("Read from file: ");
+	while (file.available())
+	{
+		Serial.write(file.read());
+	}
+	file.close();
+}
+
+static void writeFile(fs::FS &fs, const char *path, const char *message)
+{
+	Debug.printf("Writing file: %s\n", path);
+
+	File file = fs.open(path, FILE_WRITE);
+	if (!file)
+	{
+		Debug.println("Failed to open file for writing");
+		return;
+	}
+	if (file.print(message))
+	{
+		Debug.println("File written");
+	}
+	else
+	{
+		Debug.println("Write failed");
+	}
+	file.close();
+}
+
+static void appendFile(fs::FS &fs, const char *path, const char *message)
+{
+	Debug.printf("Appending to file: %s\n", path);
+
+	File file = fs.open(path, FILE_APPEND);
+	if (!file)
+	{
+		Debug.println("Failed to open file for appending");
+		return;
+	}
+	if (file.print(message))
+	{
+		Debug.println("Message appended");
+	}
+	else
+	{
+		Debug.println("Append failed");
+	}
+	file.close();
+}
+
+static void renameFile(fs::FS &fs, const char *path1, const char *path2)
+{
+	Debug.printf("Renaming file %s to %s\n", path1, path2);
+	if (fs.rename(path1, path2))
+	{
+		Debug.println("File renamed");
+	}
+	else
+	{
+		Debug.println("Rename failed");
+	}
+}
+
+static void deleteFile(fs::FS &fs, const char *path)
+{
+	Debug.printf("Deleting file: %s\n", path);
+	if (fs.remove(path))
+	{
+		Debug.println("File deleted");
+	}
+	else
+	{
+		Debug.println("Delete failed");
+	}
+}
+
+static void testFileIO(fs::FS &fs, const char *path)
+{
+	File file = fs.open(path);
+	static uint8_t buf[512];
+	size_t len = 0;
+	uint32_t start = millis();
+	uint32_t end = start;
+	if (file)
+	{
+		len = file.size();
+		size_t flen = len;
+		start = millis();
+		while (len)
+		{
+			size_t toRead = len;
+			if (toRead > 512)
+			{
+				toRead = 512;
+			}
+			file.read(buf, toRead);
+			len -= toRead;
+		}
+		end = millis() - start;
+		Debug.printf("%u bytes read for %u ms\n", flen, end);
+		file.close();
+	}
+	else
+	{
+		Debug.println("Failed to open file for reading");
+	}
+
+	file = fs.open(path, FILE_WRITE);
+	if (!file)
+	{
+		Debug.println("Failed to open file for writing");
+		return;
+	}
+
+	size_t i;
+	start = millis();
+	for (i = 0; i < 2048; i++)
+	{
+		file.write(buf, 512);
+	}
+	end = millis() - start;
+	Debug.printf("%u bytes written for %u ms\n", 2048 * 512, end);
+	file.close();
+}
+
+
 /*****************************************************************
  * The Setup                                                     *
  *****************************************************************/
@@ -6124,6 +6598,13 @@ void setup()
 	{
 		serialNO2.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, NO2_SERIAL_RX, NO2_SERIAL_TX); //OK
 		Debug.println("Envea Cairsens NO2... serialN02 9600 8N1 SoftwareSerial");
+		serialNO2.setTimeout((4 * 12 * 1000) / 9600);
+	}
+
+	if (cfg::has_gps)
+	{
+		serialGPS.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, GPS_SERIAL_RX, GPS_SERIAL_TX); //OK
+		Debug.println("GPS... serialGPS 9600 8N1 SoftwareSerial");
 		serialNO2.setTimeout((4 * 12 * 1000) / 9600);
 	}
 
@@ -6631,6 +7112,45 @@ void setup()
 	Debug.println(booltobyte(configlorawan));
 	datalora[0] = booltobyte(configlorawan);
 
+
+	if (cfg::has_gps)
+	{
+
+		while (!GPSdata.checked)
+		{
+			while (serialGPS.available() > 0 && (!newGPSdata || !GPSdata.checked))
+			{
+				if (gps.encode(serialGPS.read()))
+				{
+					Debug.println(F("First GPS coordinates"));
+					GPSdata = getGPSdata();
+					if (GPSdata.checked){
+						Debug.println(F("GPS coordinates found!"));
+					}
+					newGPSdata = true;
+				}
+			}
+			if (millis() > 5000 && gps.charsProcessed() < 10)
+			{
+				Debug.println(F("No GPS detected: check wiring."));
+				GPSdata = {0, 0, 0, 0, 0, 0, -1.0, -1.0, -1.0, false};
+			}
+		}
+
+		if (GPSdata.checked && cfg::has_sdcard)
+		{
+			coordinates = true;
+			listDir(SD, "/", 0);
+			file_name = String("/") + String(GPSdata.year) + String("_") + String(GPSdata.month) + String("_") + String(GPSdata.day) + String("_") + String(GPSdata.hour) + String("_") + String(GPSdata.minute) + String("_") + String(GPSdata.second) + String(".csv");
+			writeFile(SD, file_name.c_str(), "");
+			appendFile(SD, file_name.c_str(), "Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude\n");
+			Debug.println("Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude\n");
+			file_created = true;
+		}
+	}
+
+	newGPSdata = false;
+
 	Debug.printf("End of void setup()\n");
 	starttime_waiter = millis();
 }
@@ -6787,9 +7307,29 @@ void loop()
 
 	if (send_now && cfg::sending_intervall_ms >= 120000)
 	{
+	
+	if (cfg::has_gps)
+	{
+
+		while (serialGPS.available() > 0 && !newGPSdata)
+		{
+			if (gps.encode(serialGPS.read()))
+			{
+				GPSdata = getGPSdata();
+				newGPSdata = true;
+			}
+		}
+
+		if (millis() > 5000 && gps.charsProcessed() < 10)
+		{
+			Debug.println(F("No GPS"));
+			GPSdata = {0, 0, 0, 0, 0, 0, -1.0, -1.0, -1.0, false};
+		}
+	}
 
 		void *SpActual = NULL;
 		Debug.printf("Free Stack at send_now is: %d \r\n", (uint32_t)&SpActual - (uint32_t)StackPtrEnd);
+
 
 		if (cfg::has_wifi && !wifi_connection_lost)
 		{
@@ -6879,6 +7419,13 @@ void loop()
 			data += result_Cairsens;
 		}
 
+		if (cfg::has_gps)
+		{
+			add_Value2Json(data, F("latitude"), F("Latitude: "), (float)GPSdata.latitude);
+			add_Value2Json(data, F("longitude"), F("Longitude: "), (float)GPSdata.longitude);
+			add_Value2Json(data, F("altitude"), F("Altitude: "), (float)GPSdata.altitude);
+		}
+
 		add_Value2Json(data, F("samples"), String(sample_count));
 		add_Value2Json(data, F("min_micro"), String(min_micro));
 		add_Value2Json(data, F("max_micro"), String(max_micro));
@@ -6906,6 +7453,87 @@ void loop()
 			data.remove(data.length() - 1);
 		}
 		data += "]}";
+
+		if (GPSdata.checked)
+		{
+			RESERVE_STRING(datacsv, LARGE_STR);
+
+			datacsv += String(GPSdata.year);
+			datacsv += "-";
+
+			if (GPSdata.month < 10)
+			{
+				datacsv += "0";
+			}
+			datacsv += String(GPSdata.month);
+			datacsv += "-";
+
+			if (GPSdata.day < 10)
+			{
+				datacsv += "0";
+			}
+			datacsv += String(GPSdata.day);
+
+			datacsv += "T";
+			if (GPSdata.hour < 10)
+			{
+				datacsv += "0";
+			}
+			datacsv += String(GPSdata.hour);
+			datacsv += ":";
+
+			if (GPSdata.minute < 10)
+			{
+				datacsv += "0";
+			}
+			datacsv += String(GPSdata.minute);
+			datacsv += ":";
+
+			if (GPSdata.second < 10)
+			{
+				datacsv += "0";
+			}
+			datacsv += String(GPSdata.second);
+			datacsv += "Z";
+			datacsv += ";";
+			datacsv += String(last_value_NPM_P0);
+			datacsv += ";";
+			datacsv += String(last_value_NPM_P2);
+			datacsv += ";";
+			datacsv += String(last_value_NPM_P1);
+			datacsv += ";";
+			datacsv += String(last_value_NPM_N1);
+			datacsv += ";";
+			datacsv += String(last_value_NPM_N25);
+			datacsv += ";";
+			datacsv += String(last_value_NPM_N10);
+			datacsv += ";";
+			datacsv += String(last_value_CCS811);
+			datacsv += ";";
+			datacsv += String(last_value_no2);
+			datacsv += ";";
+			datacsv += String(last_value_BMX280_T);
+			datacsv += ";";
+			datacsv += String(last_value_BME280_H);
+			datacsv += ";";
+			datacsv += String(last_value_BMX280_P);
+			datacsv += ";";
+			datacsv += String(GPSdata.latitude,8);
+			datacsv += ";";
+			datacsv += String(GPSdata.longitude,8);
+			datacsv += ";";
+			datacsv += String(GPSdata.altitude);
+			datacsv += "\n";
+
+			appendFile(SD, file_name.c_str(), datacsv.c_str());
+
+			Debug.println(datacsv);
+			count_recorded += 1;
+			last_datacsv_string = std::move(datacsv);
+		}
+
+		//"Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude\n"
+
 
 		if (cfg::has_led_value)
 		{
@@ -7100,6 +7728,7 @@ void loop()
 		min_micro = 1000000000;
 		max_micro = 0;
 		sum_send_time = 0;
+		newGPSdata = false;
 
 		if (cfg::has_lora && lorachip)
 		{

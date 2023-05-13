@@ -37,6 +37,7 @@ const char SENSORS_CCS811[] PROGMEM = "CJMCU-811";
 const char SENSORS_MHZ16[] PROGMEM = "MH-Z16";
 const char SENSORS_MHZ19[] PROGMEM = "MH-Z19";
 const char SENSORS_ENVEANO2[] PROGMEM = "Cairsens NO2";
+const char GPS_BN220[] PROGMEM = "BN-220";
 
 
 const char WEB_PAGE_HEADER[] PROGMEM = "<!DOCTYPE html><html lang='" INTL_LANG "'>\
