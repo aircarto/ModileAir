@@ -79,6 +79,8 @@ enum ConfigShapeId {
 	Config_display_measure,
 	Config_display_device_info,
 	Config_has_gps,
+	Config_has_ssd1306,
+	Config_has_sh1106,
 };
 static constexpr char CFG_KEY_HAS_WIFI[] PROGMEM = "has_wifi";
 static constexpr char CFG_KEY_HAS_LORA[] PROGMEM = "has_lora";
@@ -133,6 +135,8 @@ static constexpr char CFG_KEY_HAS_SDCARD[] PROGMEM = "has_sdcard";
 static constexpr char CFG_KEY_DISPLAY_MEASURE[] PROGMEM = "display_measure";
 static constexpr char CFG_KEY_DISPLAY_DEVICE_INFO[] PROGMEM = "display_device_info";
 static constexpr char CFG_KEY_HAS_GPS[] PROGMEM = "has_gps";
+static constexpr char CFG_KEY_HAS_SSD1306[] PROGMEM = "has_ssd1306";
+static constexpr char CFG_KEY_HAS_SH1106[] PROGMEM = "has_sh1106";
 static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_WIFI, &cfg::has_wifi },
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_LORA, &cfg::has_lora },
@@ -187,4 +191,6 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_Bool, 0, CFG_KEY_DISPLAY_MEASURE, &cfg::display_measure },
 	{ Config_Type_Bool, 0, CFG_KEY_DISPLAY_DEVICE_INFO, &cfg::display_device_info },
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_GPS, &cfg::has_gps },
+	{ Config_Type_Bool, 0, CFG_KEY_HAS_SSD1306, &cfg::has_ssd1306 },
+	{ Config_Type_Bool, 0, CFG_KEY_HAS_SH1106, &cfg::has_sh1106 },
 };

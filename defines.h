@@ -62,7 +62,7 @@ constexpr const unsigned long SAMPLETIME_Cairsens_MS = 10000;
 
 
 constexpr const unsigned long SAMPLETIME_GPS_MS = 50;
-constexpr const unsigned long DISPLAY_UPDATE_INTERVAL_MS = 5000;						// time between switching display to next "screen"
+constexpr const unsigned long DISPLAY_UPDATE_INTERVAL_MS = 10000;						// time between switching display to next "screen"
 constexpr const unsigned long ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 constexpr const unsigned long PAUSE_BETWEEN_UPDATE_ATTEMPTS_MS = ONE_DAY_IN_MS;		// check for firmware updates once a day
 constexpr const unsigned long DURATION_BEFORE_FORCED_RESTART_MS = ONE_DAY_IN_MS * 28;	// force a reboot every ~4 weeks

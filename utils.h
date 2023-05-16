@@ -46,7 +46,7 @@ extern String delayToString(unsigned time_ms);
 
 extern String check_display_value(double value, double undef, uint8_t len, uint8_t str_len);
 extern void add_Value2Json(String& res, const __FlashStringHelper* type, const String& value);
-extern void add_Value2Json(String& res, const __FlashStringHelper* type, const __FlashStringHelper* debug_type, const float& value);
+extern void add_Value2Json(String& res, const __FlashStringHelper* type, const __FlashStringHelper* debug_type, const float& value, bool coo);
 
 extern float readCorrectionOffset(const char* correction);
 

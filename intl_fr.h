@@ -40,7 +40,7 @@ const char INTL_LORA_SETTINGS[] PROGMEM = "Paramètres LoRa";
 const char INTL_NBIOT_SETTINGS[] PROGMEM = "Paramètres NBIoT";
 const char INTL_MORE_SETTINGS[] PROGMEM = "Autres paramètres";
 const char INTL_SENSORS[] PROGMEM = "Capteurs";
-const char INTL_LEDS[] PROGMEM = "LEDs RGB";
+const char INTL_DISPLAY[] PROGMEM = "Affichage";
 const char INTL_APIS[] PROGMEM = "APIs";
 const char INTL_RGPD[] PROGMEM = "RGPD";
 const char INTL_RGPD_ACCEPT[] PROGMEM = "Lu et approuvé";
@@ -49,6 +49,7 @@ const char INTL_BRIGHTNESS[] PROGMEM = "Intensité";
 const char INTL_VALUE_DISPLAYED[] PROGMEM = "Valeur affichée";
 const char INTL_SCREENS[] PROGMEM = "Écrans";
 const char INTL_SSD1306[] PROGMEM = "OLED SSD1306";
+const char INTL_SH1106[] PROGMEM = "OLED SH1106";
 const char INTL_LED_VALUE[] PROGMEM = "LED afficher valeurs";
 const char INTL_LED_CONNECT[] PROGMEM = "LED afficher connexion";
 const char INTL_MATRIX[] PROGMEM = "Matrice RGB 64x32";
@@ -98,6 +99,7 @@ const char INTL_ALLOW[] PROGMEM = "Autoriser";
 #define INTL_FIRMWARE "Firmware"
 #define INTL_DISPLAY "Affichage"
 #define INTL_LOCATION "Position"
+#define INTL_OLED "Configuration écran"
 const char INTL_DEBUG_SETTING_TO[] PROGMEM = "Paramètres de débogage";
 #define INTL_NONE "aucun"
 #define INTL_ERROR "erreur"
@@ -137,6 +139,7 @@ const char INTL_NBIOT_EXPLANATION[] = "Cocher les deux check boxes et redémarre
 const char INTL_NBIOT_CONFIGURATION[] = "Activer le mode configuration";
 const char INTL_NBIOT_NUMBER[] = "Saisir le numéro du réseau: ";
 const char INTL_NBIOT_DATA_FORMAT[] PROGMEM = "Format de données";
+const char INTL_GPS_ACTIVATION[] = "Activer le GPS";
 
 
 #include "./aircarto-logo-common.h"

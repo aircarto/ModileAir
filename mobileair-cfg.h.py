@@ -54,6 +54,8 @@ Bool        has_sdcard
 Bool		display_measure
 Bool		display_device_info
 Bool        has_gps
+Bool        has_ssd1306
+Bool		has_sh1106
 """
 
 with open("mobileair-cfg.h", "w") as h:

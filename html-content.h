@@ -143,6 +143,7 @@ const char WEB_BR_FORM[] PROGMEM = "<br/></form>";
 const char WEB_BR_LF_B[] PROGMEM = "<br/>\n<b>";
 const char WEB_LF_B[] PROGMEM = "\n<b>";
 const char WEB_CSV[] PROGMEM = "CSV";
+const char WEB_SD[] PROGMEM = "SD";
 const char WEB_MADAVI[] PROGMEM = "<a target='_blank' href='https://www.madavi.de/ok-lab-stuttgart/'>Madavi.de</a>";
 const char WEB_SENSORCOMMUNITY[] PROGMEM = "<a target='_blank' href='https://archive.sensor.community/00disclamer.md'>Sensor.Community</a>";
 const char WEB_HTTPS[] PROGMEM = "HTTPS";

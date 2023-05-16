@@ -1,8 +1,10 @@
 #include <WString.h>
 #include <pgmspace.h>
+// #include <iostream>
+// #include <iomanip>
 
-#define SOFTWARE_VERSION_STR "MobileAir-V2-042023"
-#define SOFTWARE_VERSION_STR_SHORT "V2-042023"
+#define SOFTWARE_VERSION_STR "MobileAir-V1-042023"
+#define SOFTWARE_VERSION_STR_SHORT "V1-042023"
 String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 String SOFTWARE_VERSION_SHORT(SOFTWARE_VERSION_STR_SHORT);
 
@@ -17,6 +19,7 @@ String SOFTWARE_VERSION_SHORT(SOFTWARE_VERSION_STR_SHORT);
 
 #include "./Fonts/oledfont.h"
 #include <SSD1306Wire.h>
+#include <SH1106Wire.h>
 
 #define LTE_SHIELD_SOFTWARE_SERIAL_ENABLED false
 
@@ -131,6 +134,7 @@ namespace cfg
 	bool rgpd = RGPD;
 	unsigned value_displayed = VALUE_DISPLAYED;
 	bool has_ssd1306 = HAS_SSD1306;
+	bool has_sh1106 = HAS_SH1106;
 	bool display_measure = DISPLAY_MEASURE;
 	bool display_device_info = DISPLAY_DEVICE_INFO;
 
@@ -220,7 +224,8 @@ unsigned long count_recorded = 0;
 bool bmx280_init_failed = false;
 bool ccs811_init_failed = false;
 bool mobileair_selftest_failed = false;
-bool file_created;
+bool sdcard_found = false;
+bool file_created = false;
 
 
 WebServer server(80);
@@ -231,6 +236,9 @@ WebServer server(80);
 /*****************************************************************
  * Display definitions                                           *
  *****************************************************************/
+
+SSD1306Wire *oled_ssd1306 = nullptr; // as pointer
+SH1106Wire *oled_sh1106 = nullptr;	// as pointer
 
 //LED declarations
 
@@ -1383,6 +1391,7 @@ uint8_t sntp_time_set;
 
 unsigned long count_sends = 0;
 uint8_t next_display_count = 0;
+unsigned long last_display_millis_oled = 0;
 
 struct struct_wifiInfo
 {
@@ -1408,6 +1417,36 @@ static String displayGenerateFooter(unsigned int screen_count)
 		display_footer += (i != (next_display_count % screen_count)) ? " . " : " o ";
 	}
 	return display_footer;
+}
+
+/*****************************************************************
+ * display values                                                *
+ *****************************************************************/
+static void display_debug(const String &text1, const String &text2, const String &text3)
+{
+	debug_outln_info(F("output debug text to displays..."));
+
+		if (oled_ssd1306)
+		{
+			oled_ssd1306->clear();
+			oled_ssd1306->displayOn();
+			oled_ssd1306->setTextAlignment(TEXT_ALIGN_LEFT);
+			oled_ssd1306->drawString(0, 12, text1);
+			oled_ssd1306->drawString(0, 24, text2);
+			oled_ssd1306->drawString(0, 36, text3);
+			oled_ssd1306->display();
+		}
+
+	if (oled_sh1106)
+	{
+		oled_sh1106->clear();
+		oled_sh1106->displayOn();
+		oled_sh1106->setTextAlignment(TEXT_ALIGN_LEFT);
+		oled_sh1106->drawString(0, 12, text1);
+		oled_sh1106->drawString(0, 24, text2);
+		oled_sh1106->drawString(0, 36, text3);
+		oled_sh1106->display();
+	}
 }
 
 /*****************************************************************
@@ -2011,7 +2050,7 @@ static struct GPS getGPSdata()
 	if (gps.location.isValid())
 	{
 		Debug.print(gps.location.lat(), 6);
-		Debug.print(F(","));
+		Debug.print(F(", "));
 		Debug.print(gps.location.lng(), 6);
 		Debug.print(F(" | "));
 
@@ -2026,20 +2065,29 @@ static struct GPS getGPSdata()
 		return result;
 	}
 
-	Debug.print(F("Altitude: "));
-	if (gps.altitude.isValid())
-	{
-		Debug.print(gps.altitude.meters());
-		Debug.print(F(" | "));
 		result.altitude = gps.altitude.meters();
-	}
-	else
-	{
-		Debug.print(F("INVALID"));
-		result.checked = false;
-		Debug.println();
-		return result;
-	}
+
+// Debug.print(gps.altitude.isValid()); //does not exist
+// Debug.print(F(" | "));
+//  Debug.print(gps.altitude.meters());
+//  Debug.print(F(" | "));
+// Debug.print(gps.altitude.value());
+// Debug.print(F(" | "));
+//  Debug.print(gps.satellites.value());
+// 	Debug.print(F("Altitude: "));
+// 	if (gps.altitude.isValid())
+// 	{
+// 		Debug.print(gps.altitude.meters());
+// 		Debug.print(F(" | "));
+// 		result.altitude = gps.altitude.meters();
+// 	}
+// 	else
+// 	{
+// 		Debug.print(F("INVALID"));
+// 		result.checked = false;
+// 		Debug.println();
+// 		return result;
+// 	}
 
 	Debug.print(F("Date/Time: "));
 	if (gps.date.isValid())
@@ -2539,7 +2587,7 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += FPSTR(INTL_SENSORS);
 	page_content += F("</label>"
 					  "<label class='tab' id='tab6' for='r6'>");
-	page_content += FPSTR(INTL_LEDS);
+	page_content += FPSTR(INTL_DISPLAY);
 	page_content += F("</label>"
 					  "<label class='tab' id='tab7' for='r7'>");
 	page_content += FPSTR(INTL_APIS);
@@ -2668,6 +2716,8 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(4));
 
 	page_content += F("<b>" INTL_LOCATION "</b>&nbsp;");
+	page_content += FPSTR(WEB_B_BR_BR);
+	add_form_checkbox(Config_has_gps, FPSTR(INTL_GPS_ACTIVATION));
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, Config_height_above_sealevel, FPSTR(INTL_HEIGHT_ABOVE_SEALEVEL), LEN_HEIGHT_ABOVE_SEALEVEL - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
@@ -2736,7 +2786,16 @@ static void webserver_config_send_body_get(String &page_content)
 	//page_content = emptyString;
 
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(6));
-
+	page_content += F("<b>" INTL_OLED "</b>&nbsp;");
+	page_content += FPSTR(WEB_B_BR_BR);
+	add_form_checkbox(Config_has_ssd1306, FPSTR(INTL_SSD1306));
+	add_form_checkbox(Config_has_sh1106, FPSTR(INTL_SH1106));
+	add_form_checkbox(Config_display_measure, FPSTR(INTL_DISPLAY_MEASURES));
+	// add_form_checkbox(Config_display_wifi_info, FPSTR(INTL_DISPLAY_WIFI_INFO));
+	// add_form_checkbox(Config_display_lora_info, FPSTR(INTL_DISPLAY_LORA_INFO));
+	// add_form_checkbox(Config_display_nbiot_info, FPSTR(INTL_DISPLAY_NBIOT_INFO));
+	add_form_checkbox(Config_display_device_info, FPSTR(INTL_DISPLAY_DEVICE_INFO));
+	page_content += FPSTR("<br/>");
 	page_content += FPSTR("<b>");
 	page_content += FPSTR(INTL_LED_CONFIG);
 	page_content += FPSTR(WEB_B_BR);
@@ -2761,6 +2820,7 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += form_checkbox(Config_ssl_madavi, FPSTR(WEB_HTTPS), false);
 	page_content += FPSTR(WEB_BRACE_BR);
 	add_form_checkbox(Config_send2csv, FPSTR(WEB_CSV));
+	add_form_checkbox(Config_has_sdcard, FPSTR(WEB_SD));
 	server.sendContent(page_content);
 	page_content = emptyString;
 
@@ -4003,6 +4063,7 @@ static void wifiConfig()
 	debug_outln_info_bool(F("AirCarto: "), cfg::send2custom);
 	debug_outln_info_bool(F("AtmoSud: "), cfg::send2custom2);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
+	debug_outln_info_bool(F("Display: "), cfg::has_ssd1306);
 	debug_outln_info_bool(F("LED value: "), cfg::has_led_value);
 	debug_outln_info(F("Debug: "), String(cfg::debug));
 	wificonfig_loop = false; // VOIR ICI
@@ -4030,7 +4091,7 @@ static WiFiEventId_t STAstopEventHandler;
 
 static void connectWifi()
 {
-
+	// display_debug(F("Connecting to"), String(cfg::wlanssid));
 	disconnectEventHandler = WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info)
 										  {
 											  if (!wifi_connection_lost)
@@ -4748,15 +4809,15 @@ static void fetchSensorBMX280(String &s)
 		last_value_BMX280_P = p;
 		if (bmx280.sensorID() == BME280_SENSOR_ID)
 		{
-			add_Value2Json(s, F("BME280_temperature"), FPSTR(DBG_TXT_TEMPERATURE), last_value_BMX280_T);
-			add_Value2Json(s, F("BME280_pressure"), FPSTR(DBG_TXT_PRESSURE), last_value_BMX280_P);
+			add_Value2Json(s, F("BME280_temperature"), FPSTR(DBG_TXT_TEMPERATURE), last_value_BMX280_T, false);
+			add_Value2Json(s, F("BME280_pressure"), FPSTR(DBG_TXT_PRESSURE), last_value_BMX280_P, false);
 			last_value_BME280_H = h;
-			add_Value2Json(s, F("BME280_humidity"), FPSTR(DBG_TXT_HUMIDITY), last_value_BME280_H);
+			add_Value2Json(s, F("BME280_humidity"), FPSTR(DBG_TXT_HUMIDITY), last_value_BME280_H, false);
 		}
 		else
 		{
-			add_Value2Json(s, F("BMP280_pressure"), FPSTR(DBG_TXT_PRESSURE), last_value_BMX280_P);
-			add_Value2Json(s, F("BMP280_temperature"), FPSTR(DBG_TXT_TEMPERATURE), last_value_BMX280_T);
+			add_Value2Json(s, F("BMP280_pressure"), FPSTR(DBG_TXT_PRESSURE), last_value_BMX280_P, false);
+			add_Value2Json(s, F("BMP280_temperature"), FPSTR(DBG_TXT_TEMPERATURE), last_value_BMX280_T, false);
 		}
 	}
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
@@ -4804,7 +4865,7 @@ static void fetchSensorCCS811(String &s)
 		if (ccs811_val_count >= 12)
 		{
 			last_value_CCS811 = float(ccs811_sum / ccs811_val_count);
-			add_Value2Json(s, F("CCS811_VOC"), FPSTR(DBG_TXT_VOCPPB), last_value_CCS811);
+			add_Value2Json(s, F("CCS811_VOC"), FPSTR(DBG_TXT_VOCPPB), last_value_CCS811, false);
 			debug_outln_info(FPSTR(DBG_TXT_SEP));
 		}
 		else
@@ -4848,7 +4909,7 @@ static void fetchSensorCairsens(String &s)
 		if (no2_val_count >= 12)
 		{
 			last_value_no2 = CairsensUART::ppbToPpm(CairsensUART::NO2, float(no2_sum / no2_val_count));
-			add_Value2Json(s, F("Cairsens_NO2"), FPSTR(DBG_TXT_NO2PPB), last_value_no2);
+			add_Value2Json(s, F("Cairsens_NO2"), FPSTR(DBG_TXT_NO2PPB), last_value_no2, false);
 			debug_outln_info(FPSTR(DBG_TXT_SEP));
 		}
 		else
@@ -4863,6 +4924,234 @@ static void fetchSensorCairsens(String &s)
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(sensor_name));
 }
+
+
+/*****************************************************************
+ * display values                                                *
+ *****************************************************************/
+static void display_values_oled() //COMPLETER LES ECRANS
+{
+	float t_value = -128.0;
+	float h_value = -1.0;
+	float p_value = -1.0;
+
+	String t_sensor, h_sensor, p_sensor;
+
+	float pm01_value = -1.0;
+	float pm25_value = -1.0;
+	float pm10_value = -1.0;
+
+	String pm01_sensor, pm10_sensor, pm25_sensor;
+
+	float nc010_value = -1.0;
+	float nc025_value = -1.0;
+	float nc100_value = -1.0;
+
+	String cov_sensor, no2_sensor;
+
+	float no2_value = -1.0;
+	float cov_value = -1.0;
+
+	double lat_value = -200.0;
+	double lon_value = -200.0;
+	double alt_value = -1000.0;
+
+	String display_header;
+	String display_lines[3] = {"", "", ""};
+
+	uint8_t screen_count = 0;
+	uint8_t screens[8];
+	int line_count = 0;
+	debug_outln_info(F("output values to display..."));
+
+	if (cfg::npm_read)
+	{
+		pm01_value = last_value_NPM_P0;
+		pm10_value = last_value_NPM_P1;
+		pm25_value = last_value_NPM_P2;
+		pm01_sensor = FPSTR(SENSORS_NPM);
+		pm10_sensor = FPSTR(SENSORS_NPM);
+		pm25_sensor = FPSTR(SENSORS_NPM);
+		nc010_value = last_value_NPM_N1;
+		nc100_value = last_value_NPM_N10;
+		nc025_value = last_value_NPM_N25;
+	}
+
+	if (cfg::bmx280_read)
+	{
+		t_sensor = p_sensor = FPSTR(SENSORS_BMP280);
+		t_value = last_value_BMX280_T;
+		p_value = last_value_BMX280_P;
+		if (bmx280.sensorID() == BME280_SENSOR_ID)
+		{
+			h_sensor = t_sensor = FPSTR(SENSORS_BME280);
+			h_value = last_value_BME280_H;
+		}
+	}
+
+	if (cfg::ccs811_read)
+	{
+		cov_value = last_value_CCS811;
+		cov_sensor = FPSTR(SENSORS_CCS811);
+	}
+
+	if (cfg::enveano2_read)
+	{
+		cov_value = last_value_no2;
+		cov_sensor = FPSTR(SENSORS_ENVEANO2);
+	}
+
+	if (cfg::has_gps)
+	{
+	double lat_value = GPSdata.latitude;
+	double lon_value = GPSdata.longitude;
+	}
+
+	if (cfg::npm_read && cfg::display_measure)
+	{
+		screens[screen_count++] = 0;
+	}
+	if (cfg::bmx280_read && cfg::display_measure)
+	{
+		screens[screen_count++] = 1;
+	}
+
+	if (cfg::ccs811_read && cfg::display_measure)
+	{
+		screens[screen_count++] = 2;
+	}
+
+	if (cfg::enveano2_read && cfg::display_measure)
+	{
+		screens[screen_count++] = 3;
+	}
+
+	if (cfg::has_gps && coordinates)
+	{
+		screens[screen_count++] = 4;
+	}
+
+	if (cfg::display_device_info)
+	{
+		screens[screen_count++] = 5; // chipID, firmware and count of measurements
+		if (cfg::npm_read && cfg::display_measure)
+		{
+			screens[screen_count++] = 6; // info NPM
+		}
+	}
+
+	if (file_created)
+	{
+		screens[screen_count++] = 7;
+	}
+
+	if(screen_count!=0){
+
+	switch (screens[next_display_count % screen_count])
+	{
+	case 0:
+		display_header = FPSTR(SENSORS_NPM);
+		display_lines[0] = std::move(tmpl(F("PM1: {v} µg/m³"), check_display_value(pm01_value, -1, 1, 6)));
+		display_lines[1] = std::move(tmpl(F("PM2.5: {v} µg/m³"), check_display_value(pm25_value, -1, 1, 6)));
+		display_lines[2] = std::move(tmpl(F("PM10: {v} µg/m³"), check_display_value(pm10_value, -1, 1, 6)));
+		break;
+	case 1:
+		display_header = t_sensor;
+		if (t_sensor != "")
+		{
+			display_lines[line_count] = "Temp.: ";
+			display_lines[line_count] += check_display_value(t_value, -128, 1, 6);
+			display_lines[line_count++] += " °C";
+		}
+		if (h_sensor != "")
+		{
+			display_lines[line_count] = "Hum.:  ";
+			display_lines[line_count] += check_display_value(h_value, -1, 1, 6);
+			display_lines[line_count++] += " %";
+		}
+		if (p_sensor != "")
+		{
+			display_lines[line_count] = "Pres.: ";
+			display_lines[line_count] += check_display_value(p_value / 100, (-1 / 100.0), 1, 6);
+			display_lines[line_count++] += " hPa";
+		}
+		while (line_count < 3)
+		{
+			display_lines[line_count++] = emptyString;
+		}
+		break;
+	case 2:
+		display_header = FPSTR(SENSORS_CCS811);
+		display_lines[0] = std::move(tmpl(F("COV: {v} ppb"), check_display_value(cov_value, -1, 1, 6)));
+		break;
+	case 3:
+		display_header = FPSTR(SENSORS_ENVEANO2);
+		display_lines[0] = std::move(tmpl(F("NO2: {v} µg/m³"), check_display_value(no2_value, -1, 1, 6)));
+		break;
+	case 4:
+		display_header = FPSTR(GPS_BN220);
+		display_lines[0] = "latitude: ";
+		display_lines[0] += lat_value;
+		display_lines[1] = "longitude: ";
+		display_lines[1] += lon_value;
+		display_lines[2] = "altitude: ";
+		display_lines[2] += alt_value;
+		break;
+	case 5:
+		display_header = F("Device Info");
+		display_lines[0] = "ID: ";
+		display_lines[0] += esp_chipid;
+		display_lines[1] = "FW: ";
+		display_lines[1] += SOFTWARE_VERSION;
+		display_lines[2] = F("Measurements: ");
+		display_lines[2] += String(count_sends);
+		break;
+	case 6:
+		display_header = FPSTR(SENSORS_NPM);
+		display_lines[0] = current_state_npm;
+		display_lines[1] = F("T_NPM / RH_NPM");
+		display_lines[2] = current_th_npm;
+		break;
+	case 7:
+		display_header = FPSTR("SD card");
+		display_lines[0] = F("Recorded:");
+		display_lines[1] = String(count_recorded);
+		break;
+	}
+if (oled_ssd1306)
+		{
+	oled_ssd1306->clear();
+	oled_ssd1306->displayOn();
+	oled_ssd1306->setTextAlignment(TEXT_ALIGN_CENTER);
+	oled_ssd1306->drawString(64, 1, display_header);
+	oled_ssd1306->setTextAlignment(TEXT_ALIGN_LEFT);
+	oled_ssd1306->drawString(0, 16, display_lines[0]);
+	oled_ssd1306->drawString(0, 28, display_lines[1]);
+	oled_ssd1306->drawString(0, 40, display_lines[2]);
+	oled_ssd1306->setTextAlignment(TEXT_ALIGN_CENTER);
+	oled_ssd1306->drawString(64, 52, displayGenerateFooter(screen_count));
+	oled_ssd1306->display();
+}
+
+	if (oled_sh1106)
+		{
+			oled_sh1106->clear();
+			oled_sh1106->displayOn();
+			oled_sh1106->setTextAlignment(TEXT_ALIGN_CENTER);
+			oled_sh1106->drawString(64, 1, display_header);
+			oled_sh1106->setTextAlignment(TEXT_ALIGN_LEFT);
+			oled_sh1106->drawString(0, 16, display_lines[0]);
+			oled_sh1106->drawString(0, 28, display_lines[1]);
+			oled_sh1106->drawString(0, 40, display_lines[2]);
+			oled_sh1106->setTextAlignment(TEXT_ALIGN_CENTER);
+			oled_sh1106->drawString(64, 52, displayGenerateFooter(screen_count));
+			oled_sh1106->display();
+		}
+	}
+	yield();
+	next_display_count++;
+}
+
 
 
 // /*****************************************************************
@@ -4984,8 +5273,8 @@ static void fetchSensorSDS(String &s)
 		{
 			last_value_SDS_P1 = float(sds_pm10_sum) / (sds_val_count * 10.0f);
 			last_value_SDS_P2 = float(sds_pm25_sum) / (sds_val_count * 10.0f);
-			add_Value2Json(s, F("SDS_P1"), F("PM10:  "), last_value_SDS_P1);
-			add_Value2Json(s, F("SDS_P2"), F("PM2.5: "), last_value_SDS_P2);
+			add_Value2Json(s, F("SDS_P1"), F("PM10:  "), last_value_SDS_P1, false);
+			add_Value2Json(s, F("SDS_P2"), F("PM2.5: "), last_value_SDS_P2, false);
 			debug_outln_info(FPSTR(DBG_TXT_SEP));
 			if (sds_val_count < 3)
 			{
@@ -5125,13 +5414,13 @@ static void fetchSensorNPM(String &s)
 			last_value_NPM_N10 = float(npm_pm10_sum_pcs) / (npm_val_count);
 			last_value_NPM_N25 = float(npm_pm25_sum_pcs) / (npm_val_count);
 
-			add_Value2Json(s, F("NPM_P0"), F("PM1: "), last_value_NPM_P0);
-			add_Value2Json(s, F("NPM_P1"), F("PM10:  "), last_value_NPM_P1);
-			add_Value2Json(s, F("NPM_P2"), F("PM2.5: "), last_value_NPM_P2);
+			add_Value2Json(s, F("NPM_P0"), F("PM1: "), last_value_NPM_P0, false);
+			add_Value2Json(s, F("NPM_P1"), F("PM10:  "), last_value_NPM_P1, false);
+			add_Value2Json(s, F("NPM_P2"), F("PM2.5: "), last_value_NPM_P2, false);
 
-			add_Value2Json(s, F("NPM_N1"), F("NC1.0: "), last_value_NPM_N1);
-			add_Value2Json(s, F("NPM_N10"), F("NC10:  "), last_value_NPM_N10);
-			add_Value2Json(s, F("NPM_N25"), F("NC2.5: "), last_value_NPM_N25);
+			add_Value2Json(s, F("NPM_N1"), F("NC1.0: "), last_value_NPM_N1, false);
+			add_Value2Json(s, F("NPM_N10"), F("NC10:  "), last_value_NPM_N10, false);
+			add_Value2Json(s, F("NPM_N25"), F("NC2.5: "), last_value_NPM_N25, false);
 
 			debug_outln_info(FPSTR(DBG_TXT_SEP));
 		}
@@ -5153,6 +5442,57 @@ static void fetchSensorNPM(String &s)
 		debug_outln_info(F("Temperature and humidity in NPM after measure..."));
 		current_th_npm = NPM_temp_humi();
 	}
+}
+
+/*****************************************************************
+ * Init LCD/OLED display                                         *
+ *****************************************************************/
+static void init_display()
+{
+	if (cfg::has_ssd1306)
+
+	{
+		Debug.println("oled_ssd1306");
+		oled_ssd1306 = new SSD1306Wire(0x3c, I2C_PIN_SDA, I2C_PIN_SCL);
+		oled_ssd1306->init();
+		oled_ssd1306->flipScreenVertically(); // ENLEVER ???
+		oled_ssd1306->clear();
+		oled_ssd1306->displayOn();
+		oled_ssd1306->setTextAlignment(TEXT_ALIGN_CENTER);
+		oled_ssd1306->drawString(64, 1, "MobileAir");
+		oled_ssd1306->drawString(0, 16, "Lorem ipsum");
+		oled_ssd1306->drawString(0, 28, "Lorem ipsum");
+		oled_ssd1306->drawString(0, 40, "Lorem ipsum");
+		oled_ssd1306->display();
+	}
+
+			// 	oled_sh1106->drawString(0, 16, display_lines[0]);
+			// oled_sh1106->drawString(0, 28, display_lines[1]);
+			// oled_sh1106->drawString(0, 40, display_lines[2]);
+
+	if (cfg::has_sh1106)
+	{
+		Debug.println("oled_sh1106");
+		oled_sh1106 = new SH1106Wire(0x3c, I2C_PIN_SDA, I2C_PIN_SCL);
+		oled_sh1106->init();
+		oled_sh1106->flipScreenVertically();
+		oled_sh1106->clear();
+		oled_sh1106->displayOn();
+		oled_sh1106->setTextAlignment(TEXT_ALIGN_CENTER);
+		oled_sh1106->drawString(64, 1, "MobileAir");
+		oled_sh1106->drawString(0, 16, "Lorem ipsum");
+		oled_sh1106->drawString(0, 28, "Lorem ipsum");
+		oled_sh1106->drawString(0, 40, "Lorem ipsum");
+		oled_sh1106->display();
+	}
+
+		// reset back to 100k as the OLEDDisplay initialization is
+		// modifying the I2C speed to 400k, which overwhelms some of the
+		// sensors.
+
+	
+		Wire.setClock(100000);
+		//Wire.setClockStretchLimit(150000);
 }
 
 /*****************************************************************
@@ -5423,6 +5763,7 @@ static void powerOnTestSensors()
 
 		uint64_t cardSize = SD.cardSize() / (1024 * 1024);
 		Debug.printf("SD Card Size: %lluMB\n", cardSize);
+		sdcard_found = true;
 	}
 }
 
@@ -5451,6 +5792,15 @@ static void logEnabledAPIs()
 	if (cfg::send2custom2)
 	{
 		debug_outln_info(F("Atmosud API"));
+	}
+}
+
+static void logEnabledDisplays()
+{
+	if (cfg::has_ssd1306)
+
+	{
+		debug_outln_info(F("Show on OLED..."));
 	}
 }
 
@@ -6596,16 +6946,16 @@ void setup()
 
 	if (cfg::enveano2_read)
 	{
-		serialNO2.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, NO2_SERIAL_RX, NO2_SERIAL_TX); //OK
+		serialNO2.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, NO2_SERIAL_RX, NO2_SERIAL_TX); 
 		Debug.println("Envea Cairsens NO2... serialN02 9600 8N1 SoftwareSerial");
 		serialNO2.setTimeout((4 * 12 * 1000) / 9600);
 	}
 
 	if (cfg::has_gps)
 	{
-		serialGPS.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, GPS_SERIAL_RX, GPS_SERIAL_TX); //OK
+		serialGPS.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, GPS_SERIAL_RX, GPS_SERIAL_TX); 
 		Debug.println("GPS... serialGPS 9600 8N1 SoftwareSerial");
-		serialNO2.setTimeout((4 * 12 * 1000) / 9600);
+		serialGPS.setTimeout((4 * 12 * 1000) / 9600);
 	}
 
 	//test nbiotchip?
@@ -6626,6 +6976,12 @@ void setup()
 			Debug.println("Unable to initialize the shield.");
 			cfg::has_nbiot = false;
 		}
+	}
+
+	if (cfg::has_ssd1306 || cfg::has_sh1106)
+	{
+		Debug.print("init OLED: ");
+		init_display();
 	}
 
 	if (cfg::has_led_value)
@@ -6711,6 +7067,8 @@ void setup()
 	createLoggerConfigs();
 	logEnabledAPIs();
 	powerOnTestSensors();
+	logEnabledDisplays();
+
 
 	delay(50);
 
@@ -7115,6 +7473,7 @@ void setup()
 
 	if (cfg::has_gps)
 	{
+//REMETTRE ICI
 
 		while (!GPSdata.checked)
 		{
@@ -7137,7 +7496,8 @@ void setup()
 			}
 		}
 
-		if (GPSdata.checked && cfg::has_sdcard)
+		if (GPSdata.checked && cfg::has_sdcard && sdcard_found)
+		// if (cfg::has_sdcard && sdcard_found)
 		{
 			coordinates = true;
 			listDir(SD, "/", 0);
@@ -7167,7 +7527,7 @@ void loop()
 
 	//first run
 
-	if (count_sends == 0 && !send_now)
+	if (count_sends == 0 && !send_now && cfg::has_led_value)
 	{
 		LEDwait = msSince(starttime_waiter) > (1000 * multiplier);
 
@@ -7293,6 +7653,12 @@ void loop()
 			starttime_Cairsens = act_milli;
 			fetchSensorCairsens(result_Cairsens);
 		}
+	}
+
+	if ((msSince(last_display_millis_oled) > DISPLAY_UPDATE_INTERVAL_MS) && (cfg::has_ssd1306 || cfg::has_sh1106 ))
+	{
+		display_values_oled();
+		last_display_millis_oled = act_milli;
 	}
 
 	//AJOUTER BMX SAUF SI ON GARDE LE MODELE SC
@@ -7421,9 +7787,28 @@ void loop()
 
 		if (cfg::has_gps)
 		{
-			add_Value2Json(data, F("latitude"), F("Latitude: "), (float)GPSdata.latitude);
-			add_Value2Json(data, F("longitude"), F("Longitude: "), (float)GPSdata.longitude);
-			add_Value2Json(data, F("altitude"), F("Altitude: "), (float)GPSdata.altitude);
+			add_Value2Json(data, F("latitude"), F("Latitude: "), (float)GPSdata.latitude, true);
+			add_Value2Json(data, F("longitude"), F("Longitude: "), (float)GPSdata.longitude, true);
+			add_Value2Json(data, F("altitude"), F("Altitude: "), (float)GPSdata.altitude, false);
+			String timestring;
+			timestring += String(GPSdata.year);
+			timestring += "-";
+			if (GPSdata.month < 10){timestring += "0";}
+			timestring += String(GPSdata.month);
+			timestring += "-";
+			if (GPSdata.day < 10){timestring += "0";}
+			timestring += String(GPSdata.day);
+			timestring += "T";
+			if (GPSdata.hour < 10){timestring += "0";}
+			timestring += String(GPSdata.hour);
+			timestring += ":";
+			if (GPSdata.minute < 10){timestring += "0";}
+			timestring += String(GPSdata.minute);
+			timestring += ":";
+			if (GPSdata.second < 10){timestring += "0";}
+			timestring += String(GPSdata.second);
+			timestring += "Z";
+			add_Value2Json(data, F("time"), timestring);
 		}
 
 		add_Value2Json(data, F("samples"), String(sample_count));
@@ -7454,7 +7839,7 @@ void loop()
 		}
 		data += "]}";
 
-		if (GPSdata.checked)
+		if (GPSdata.checked && cfg::has_sdcard && file_created)
 		{
 			RESERVE_STRING(datacsv, LARGE_STR);
 
