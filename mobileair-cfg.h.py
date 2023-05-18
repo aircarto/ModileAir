@@ -2,6 +2,7 @@
 
 configshape_in = """
 Bool        has_wifi
+UInt        wifi_format
 Bool        has_lora
 Bool        has_nbiot
 String		apn
@@ -18,7 +19,6 @@ Password	www_password
 String		fs_ssid
 Password	fs_pwd
 Bool		www_basicauth_enabled
-Bool		sds_read
 Bool		npm_read
 Bool		bmx280_read
 String		height_above_sealevel
@@ -34,7 +34,8 @@ UInt		brightness
 UInt        value_displayed
 Bool        rgpd
 UInt		debug
-Time		sending_intervall_ms
+Time		sending_intervall_ms_static
+Time		sending_intervall_ms_mobile
 Time		time_for_wifi_config
 Bool		send2custom
 String		host_custom

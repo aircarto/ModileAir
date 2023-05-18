@@ -57,7 +57,9 @@ td{vertical-align:top}\
 input[type=text]{width:100%}\
 input[type=password]{width:100%}\
 input[type=submit][form=main]{color:#fff;text-align:left;cursor:pointer;border-radius:5px;font-size:medium;background:#b33;padding:9px!important;width:100%;border-style:none}\
+input[type=submit][form=other]{color:#fff;text-align:left;cursor:pointer;border-radius:5px;font-size:medium;background:#b33;padding:9px!important;width:100%;border-style:none}\
 input[type=submit][form=main]:hover{background:#d44}\
+input[type=submit][form=other]:hover{background:#d44}\
 input[type=submit][form=secondar]{color:#fff;text-align:center;cursor:pointer;border-radius:5px;font-size:medium;background:#777;padding:3px!important;display:inline;border-style:none}\
 input[type=submit][form=secondar]:hover{background:#aaa}\
 .s_green{padding:9px !important;width:100%;border-style:none;background:#438DBF;color:#fff;text-align:left}\
@@ -121,12 +123,12 @@ function load_lte_list(){var x=new XMLHttpRequest();x.open('GET','/lte');x.onloa
 
 const char WEB_REMOVE_CONFIG_CONTENT[] PROGMEM = "<h3>" INTL_CONFIGURATION_REALLY_DELETE "</h3>\
 <table><tr><td><form method='POST' action='/removeConfig'>\
-<input type='submit' class='s_red' name='submit' value='" INTL_DELETE "'/></form></td>\
+<input form='other' type='submit' class='s_red' name='submit' value='" INTL_DELETE "'/></form></td>\
 <td><a class='b' href='/'>" INTL_CANCEL "</a></td></tr></table>";
 
 const char WEB_RESET_CONTENT[] PROGMEM = "<h3>" INTL_REALLY_RESTART_SENSOR "</h3>" \
 "<table><tr><td><form method='POST' action='/reset'>" \
-"<input type='submit' class='s_red' name='submit' value='" INTL_RESTART "'/>"\
+"<input form='other' type='submit' class='s_red' name='submit' value='" INTL_RESTART "'/>"\
 "</form></td><td><a class='b' href='/'>" INTL_CANCEL "</a></td></tr></table>";
 
 const char WEB_IOS_REDIRECT[] PROGMEM = "<html><body>Redirecting...\

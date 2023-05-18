@@ -46,7 +46,10 @@ extern String delayToString(unsigned time_ms);
 
 extern String check_display_value(double value, double undef, uint8_t len, uint8_t str_len);
 extern void add_Value2Json(String& res, const __FlashStringHelper* type, const String& value);
-extern void add_Value2Json(String& res, const __FlashStringHelper* type, const __FlashStringHelper* debug_type, const float& value, bool coo);
+extern void add_Value2Json(String& res, const __FlashStringHelper* type, const __FlashStringHelper* debug_type, const float& value);
+extern void add_Value2Json(String& res, const __FlashStringHelper* type, const __FlashStringHelper* debug_type, const double& value);
+
+
 
 extern float readCorrectionOffset(const char* correction);
 
@@ -54,8 +57,6 @@ namespace cfg {
 	extern unsigned debug;
 }
 
-
-#define serialSDS (Serial1)
 #define serialNPM (Serial1) 
 
 enum class PmSensorCmd {
@@ -104,12 +105,6 @@ extern void debug_outln_info(const __FlashStringHelper* text, float value);
 extern void debug_outln_verbose(const __FlashStringHelper* text, const String& option);
 extern void debug_outln_info_bool(const __FlashStringHelper* text, const bool option);
 
-
-extern bool SDS_checksum_valid(const uint8_t (&data)[8]);
-extern void SDS_rawcmd(const uint8_t cmd_head1, const uint8_t cmd_head2, const uint8_t cmd_head3);
-extern bool SDS_cmd(PmSensorCmd cmd);
-extern bool PMS_cmd(PmSensorCmd cmd);
-extern bool HPM_cmd(PmSensorCmd cmd);
 extern void NPM_cmd(PmSensorCmd2 cmd);
 extern bool NPM_checksum_valid_4(const uint8_t (&data)[4]);
 extern bool NPM_checksum_valid_5(const uint8_t (&data)[5]);

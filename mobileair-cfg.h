@@ -27,6 +27,7 @@ struct ConfigShapeEntry {
 
 enum ConfigShapeId {
 	Config_has_wifi,
+	Config_wifi_format,
 	Config_has_lora,
 	Config_has_nbiot,
 	Config_apn,
@@ -43,7 +44,6 @@ enum ConfigShapeId {
 	Config_fs_ssid,
 	Config_fs_pwd,
 	Config_www_basicauth_enabled,
-	Config_sds_read,
 	Config_npm_read,
 	Config_bmx280_read,
 	Config_height_above_sealevel,
@@ -59,7 +59,8 @@ enum ConfigShapeId {
 	Config_value_displayed,
 	Config_rgpd,
 	Config_debug,
-	Config_sending_intervall_ms,
+	Config_sending_intervall_ms_static,
+	Config_sending_intervall_ms_mobile,
 	Config_time_for_wifi_config,
 	Config_send2custom,
 	Config_host_custom,
@@ -83,6 +84,7 @@ enum ConfigShapeId {
 	Config_has_sh1106,
 };
 static constexpr char CFG_KEY_HAS_WIFI[] PROGMEM = "has_wifi";
+static constexpr char CFG_KEY_WIFI_FORMAT[] PROGMEM = "wifi_format";
 static constexpr char CFG_KEY_HAS_LORA[] PROGMEM = "has_lora";
 static constexpr char CFG_KEY_HAS_NBIOT[] PROGMEM = "has_nbiot";
 static constexpr char CFG_KEY_APN[] PROGMEM = "apn";
@@ -99,7 +101,6 @@ static constexpr char CFG_KEY_WWW_PASSWORD[] PROGMEM = "www_password";
 static constexpr char CFG_KEY_FS_SSID[] PROGMEM = "fs_ssid";
 static constexpr char CFG_KEY_FS_PWD[] PROGMEM = "fs_pwd";
 static constexpr char CFG_KEY_WWW_BASICAUTH_ENABLED[] PROGMEM = "www_basicauth_enabled";
-static constexpr char CFG_KEY_SDS_READ[] PROGMEM = "sds_read";
 static constexpr char CFG_KEY_NPM_READ[] PROGMEM = "npm_read";
 static constexpr char CFG_KEY_BMX280_READ[] PROGMEM = "bmx280_read";
 static constexpr char CFG_KEY_HEIGHT_ABOVE_SEALEVEL[] PROGMEM = "height_above_sealevel";
@@ -115,7 +116,8 @@ static constexpr char CFG_KEY_BRIGHTNESS[] PROGMEM = "brightness";
 static constexpr char CFG_KEY_VALUE_DISPLAYED[] PROGMEM = "value_displayed";
 static constexpr char CFG_KEY_RGPD[] PROGMEM = "rgpd";
 static constexpr char CFG_KEY_DEBUG[] PROGMEM = "debug";
-static constexpr char CFG_KEY_SENDING_INTERVALL_MS[] PROGMEM = "sending_intervall_ms";
+static constexpr char CFG_KEY_SENDING_INTERVALL_MS_STATIC[] PROGMEM = "sending_intervall_ms_static";
+static constexpr char CFG_KEY_SENDING_INTERVALL_MS_MOBILE[] PROGMEM = "sending_intervall_ms_mobile";
 static constexpr char CFG_KEY_TIME_FOR_WIFI_CONFIG[] PROGMEM = "time_for_wifi_config";
 static constexpr char CFG_KEY_SEND2CUSTOM[] PROGMEM = "send2custom";
 static constexpr char CFG_KEY_HOST_CUSTOM[] PROGMEM = "host_custom";
@@ -139,6 +141,7 @@ static constexpr char CFG_KEY_HAS_SSD1306[] PROGMEM = "has_ssd1306";
 static constexpr char CFG_KEY_HAS_SH1106[] PROGMEM = "has_sh1106";
 static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_WIFI, &cfg::has_wifi },
+	{ Config_Type_UInt, 0, CFG_KEY_WIFI_FORMAT, &cfg::wifi_format },
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_LORA, &cfg::has_lora },
 	{ Config_Type_Bool, 0, CFG_KEY_HAS_NBIOT, &cfg::has_nbiot },
 	{ Config_Type_String, sizeof(cfg::apn)-1, CFG_KEY_APN, cfg::apn },
@@ -155,7 +158,6 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_String, sizeof(cfg::fs_ssid)-1, CFG_KEY_FS_SSID, cfg::fs_ssid },
 	{ Config_Type_Password, sizeof(cfg::fs_pwd)-1, CFG_KEY_FS_PWD, cfg::fs_pwd },
 	{ Config_Type_Bool, 0, CFG_KEY_WWW_BASICAUTH_ENABLED, &cfg::www_basicauth_enabled },
-	{ Config_Type_Bool, 0, CFG_KEY_SDS_READ, &cfg::sds_read },
 	{ Config_Type_Bool, 0, CFG_KEY_NPM_READ, &cfg::npm_read },
 	{ Config_Type_Bool, 0, CFG_KEY_BMX280_READ, &cfg::bmx280_read },
 	{ Config_Type_String, sizeof(cfg::height_above_sealevel)-1, CFG_KEY_HEIGHT_ABOVE_SEALEVEL, cfg::height_above_sealevel },
@@ -171,7 +173,8 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_UInt, 0, CFG_KEY_VALUE_DISPLAYED, &cfg::value_displayed },
 	{ Config_Type_Bool, 0, CFG_KEY_RGPD, &cfg::rgpd },
 	{ Config_Type_UInt, 0, CFG_KEY_DEBUG, &cfg::debug },
-	{ Config_Type_Time, 0, CFG_KEY_SENDING_INTERVALL_MS, &cfg::sending_intervall_ms },
+	{ Config_Type_Time, 0, CFG_KEY_SENDING_INTERVALL_MS_STATIC, &cfg::sending_intervall_ms_static },
+	{ Config_Type_Time, 0, CFG_KEY_SENDING_INTERVALL_MS_MOBILE, &cfg::sending_intervall_ms_mobile },
 	{ Config_Type_Time, 0, CFG_KEY_TIME_FOR_WIFI_CONFIG, &cfg::time_for_wifi_config },
 	{ Config_Type_Bool, 0, CFG_KEY_SEND2CUSTOM, &cfg::send2custom },
 	{ Config_Type_String, sizeof(cfg::host_custom)-1, CFG_KEY_HOST_CUSTOM, cfg::host_custom },

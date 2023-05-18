@@ -8,8 +8,9 @@
 #define LEN_CFG_STRING2 65
 #define LEN_CFG_PASSWORD2 65
 
-#define LEN_PAYLOAD_LORA 35
-#define LEN_PAYLOAD_NBIOT 35
+#define LEN_PAYLOAD_LORA 47
+#define LEN_PAYLOAD_NBIOT 47
+#define LEN_PAYLOAD_WIFI 47
 
 #define LEN_APPEUI 17
 #define LEN_DEVEUI 17
@@ -61,7 +62,7 @@ constexpr const unsigned long SAMPLETIME_CCS811_MS = 10000;
 constexpr const unsigned long SAMPLETIME_Cairsens_MS = 10000;
 
 
-constexpr const unsigned long SAMPLETIME_GPS_MS = 50;
+constexpr const unsigned long SAMPLETIME_GPS_MS = 1000;
 constexpr const unsigned long DISPLAY_UPDATE_INTERVAL_MS = 10000;						// time between switching display to next "screen"
 constexpr const unsigned long ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 constexpr const unsigned long PAUSE_BETWEEN_UPDATE_ATTEMPTS_MS = ONE_DAY_IN_MS;		// check for firmware updates once a day

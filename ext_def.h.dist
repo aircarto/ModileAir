@@ -7,7 +7,8 @@ const char WLANPWD[] PROGMEM = "XXXXXXXXXXX";
 
 
 #define TIME_FOR_WIFI_CONFIG 120000;
-#define SENDING_INTERVALL_MS 120000;
+#define SENDING_INTERVALL_MS_STATIC 120000;
+#define SENDING_INTERVALL_MS_MOBILE 120000;
 
 // BasicAuth config
 const char WWW_USERNAME[] PROGMEM = "admin";
@@ -19,6 +20,7 @@ const char WWW_PASSWORD[] PROGMEM = "";
 #define FS_PWD "mobileaircfg"
 
 #define HAS_WIFI 0
+#define WIFI_FORMAT 0
 
 //NBIoT
 
@@ -105,10 +107,6 @@ static const char URL_CUSTOM2[] PROGMEM = "/data.php";
 #define I2C_PIN_SDA D21
 
 #define LED_PIN D33
-
-// SDS011, the more expensive version of the particle sensor
-#define SDS_READ 0
-#define SDS_API_PIN 1
 
 // Tera Sensor Next PM sensor
 #define NPM_READ 0

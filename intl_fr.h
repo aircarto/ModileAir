@@ -138,7 +138,8 @@ const char INTL_NBIOT_ACTIVATION[] = "Activer la communication NBIoT";
 const char INTL_NBIOT_EXPLANATION[] = "Cocher les deux check boxes et redémarrer pour activer la configuration";
 const char INTL_NBIOT_CONFIGURATION[] = "Activer le mode configuration";
 const char INTL_NBIOT_NUMBER[] = "Saisir le numéro du réseau: ";
-const char INTL_NBIOT_DATA_FORMAT[] PROGMEM = "Format de données";
+const char INTL_NBIOT_DATA_FORMAT[] PROGMEM = "Format des données NBIoT";
+const char INTL_WIFI_DATA_FORMAT[] PROGMEM = "Format des données WiFi";
 const char INTL_GPS_ACTIVATION[] = "Activer le GPS";
 
 
