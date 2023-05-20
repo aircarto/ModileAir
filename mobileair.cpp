@@ -231,6 +231,9 @@ bool mobileair_selftest_failed = false;
 bool sdcard_found = false;
 bool file_created = false;
 
+int potValue = 0;
+String measure_type_string;
+uint8_t measure_type_nb;
 
 WebServer server(80);
 
@@ -1439,7 +1442,7 @@ static int8_t NPM_get_state()
 	int8_t result = -1;
 	NPM_waiting_for_4 = NPM_REPLY_HEADER_4;
 	debug_outln_info(F("State NPM..."));
-	NPM_cmd(PmSensorCmd2::State);
+	NPM_cmd(PmSensorCmd::State);
 
 	unsigned long timeout = millis();
 
@@ -1489,7 +1492,7 @@ static bool NPM_start_stop()
 	bool result;
 	NPM_waiting_for_4 = NPM_REPLY_HEADER_4;
 	debug_outln_info(F("Switch start/stop NPM..."));
-	NPM_cmd(PmSensorCmd2::Change);
+	NPM_cmd(PmSensorCmd::Change);
 
 	unsigned long timeout = millis();
 
@@ -1555,7 +1558,7 @@ static String NPM_version_date()
 	delay(250);
 	NPM_waiting_for_6 = NPM_REPLY_HEADER_6;
 	debug_outln_info(F("Version NPM..."));
-	NPM_cmd(PmSensorCmd2::Version);
+	NPM_cmd(PmSensorCmd::Version);
 
 	unsigned long timeout = millis();
 
@@ -1617,7 +1620,7 @@ static void NPM_fan_speed()
 
 	NPM_waiting_for_5 = NPM_REPLY_HEADER_5;
 	debug_outln_info(F("Set fan speed to 50 %..."));
-	NPM_cmd(PmSensorCmd2::Speed);
+	NPM_cmd(PmSensorCmd::Speed);
 
 	unsigned long timeout = millis();
 
@@ -1675,7 +1678,7 @@ static String NPM_temp_humi()
 	uint16_t NPM_humi;
 	NPM_waiting_for_8 = NPM_REPLY_HEADER_8;
 	debug_outln_info(F("Temperature/Humidity in Next PM..."));
-	NPM_cmd(PmSensorCmd2::Temphumi);
+	NPM_cmd(PmSensorCmd::Temphumi);
 
 	unsigned long timeout = millis();
 
@@ -2008,6 +2011,9 @@ static struct GPS getGPSdata()
 		return result;
 	}
 
+	Debug.print(F("Altitude: "));
+	Debug.print(gps.altitude.meters());
+	Debug.print(F(" | "));
 	result.altitude = gps.altitude.meters();
 
 	Debug.print(F("Date/Time: "));
@@ -2412,10 +2418,23 @@ static String form_select_lang()
 static void add_warning_first_cycle(String &page_content)
 {
 	String s = FPSTR(INTL_TIME_TO_FIRST_MEASUREMENT);
-	unsigned int time_to_first = cfg::sending_intervall_ms_static - msSince(starttime);
+	unsigned int time_to_first;
+	if(potValue < 2926)
+	{
+	 time_to_first = cfg::sending_intervall_ms_mobile - msSince(starttime);
+	if (time_to_first > cfg::sending_intervall_ms_mobile)
+	{
+		time_to_first = 0;
+	}
+
+	}else
+	{
+	time_to_first = cfg::sending_intervall_ms_static - msSince(starttime);
 	if (time_to_first > cfg::sending_intervall_ms_static)
 	{
 		time_to_first = 0;
+	}
+
 	}
 	s.replace("{v}", String(((time_to_first + 500) / 1000)));
 	page_content += s;
@@ -2425,9 +2444,19 @@ static void add_age_last_values(String &s)
 {
 	s += "<b>";
 	unsigned int time_since_last = msSince(starttime);
+
+	if(potValue < 2926)
+	{
+	if (time_since_last > cfg::sending_intervall_ms_mobile)
+	{
+		time_since_last = 0;
+	}
+	}else
+	{
 	if (time_since_last > cfg::sending_intervall_ms_static)
 	{
 		time_since_last = 0;
+	}
 	}
 	s += String((time_since_last + 500) / 1000);
 	s += FPSTR(INTL_TIME_SINCE_LAST_MEASUREMENT);
@@ -2684,6 +2713,7 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, Config_debug, FPSTR(INTL_DEBUG_LEVEL), 1);
 	add_form_input(page_content, Config_sending_intervall_ms_static, FPSTR(INTL_MEASUREMENT_INTERVAL), 5);
+	add_form_input(page_content, Config_sending_intervall_ms_mobile, FPSTR(INTL_MEASUREMENT_INTERVAL), 5);
 	add_form_input(page_content, Config_time_for_wifi_config, FPSTR(INTL_DURATION_ROUTER_MODE), 5);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 
@@ -3680,21 +3710,44 @@ static void webserver_data_json()
 	{
 		s1 = FPSTR(data_first_part);
 		s1 += "]}";
+
+	if(potValue < 2926)
+	{
+		age = cfg::sending_intervall_ms_mobile - msSince(starttime);
+		if (age > cfg::sending_intervall_ms_mobile)
+		{
+			age = 0;
+		}
+	}else
+	{
 		age = cfg::sending_intervall_ms_static - msSince(starttime);
 		if (age > cfg::sending_intervall_ms_static)
 		{
 			age = 0;
 		}
+	}
 		age = 0 - age;
 	}
 	else
 	{
 		s1 = last_data_string;
 		age = msSince(starttime);
+
+	if(potValue < 2926)
+	{
+	if (age > cfg::sending_intervall_ms_mobile)
+		{
+			age = 0;
+		}
+
+	}else
+	{
 		if (age > cfg::sending_intervall_ms_static)
 		{
 			age = 0;
 		}
+	}
+
 	}
 	String s2 = F(", \"age\":\"");
 	s2 += String((long)((age + 500) / 1000));
@@ -3710,13 +3763,28 @@ static void webserver_metrics_endpoint()
 {
 	debug_outln_info(F("ws: /metrics"));
 	RESERVE_STRING(page_content, XLARGE_STR);
+
+	if(potValue < 2926)
+	{
+	page_content = F("software_version{version=\"" SOFTWARE_VERSION_STR "\",$i} 1\nuptime_ms{$i} $u\nsending_intervall_ms_mobile{$i} $s\nnumber_of_measurements{$i} $c\n");
+
+	}else
+	{
 	page_content = F("software_version{version=\"" SOFTWARE_VERSION_STR "\",$i} 1\nuptime_ms{$i} $u\nsending_intervall_ms_static{$i} $s\nnumber_of_measurements{$i} $c\n");
+	}
+
 	String id(F("node=\"" SENSOR_BASENAME));
 	id += esp_chipid;
 	id += '\"';
 	page_content.replace("$i", id);
 	page_content.replace("$u", String(msSince(time_point_device_start_ms)));
+	if(potValue < 2926)
+	{
+	page_content.replace("$s", String(cfg::sending_intervall_ms_mobile));
+	}else
+	{
 	page_content.replace("$s", String(cfg::sending_intervall_ms_static));
+	}
 	page_content.replace("$c", String(count_sends));
 	DynamicJsonDocument json2data(JSON_BUFFER_SIZE);
 	DeserializationError err = deserializeJson(json2data, last_data_string);
@@ -5179,12 +5247,16 @@ if (oled_ssd1306)
 /*****************************************************************
  * read Tera Sensor Next PM sensor sensor values                 *
  *****************************************************************/
-static void fetchSensorNPM(String &s)
+static void fetchSensorNPM_1min(String &s)
 {
 	NPM_waiting_for_16 = NPM_REPLY_HEADER_16;
 
 	debug_outln_info(F("Concentration NPM..."));
-	NPM_cmd(PmSensorCmd2::Concentration);
+
+	// NPM_cmd(PmSensorCmd::Concentration_10sec);  //METTRE IF
+
+	NPM_cmd(PmSensorCmd::Concentration_1min);
+ 
 
 	unsigned long timeout = millis();
 
@@ -5195,7 +5267,8 @@ static void fetchSensorNPM(String &s)
 
 	while (serialNPM.available() >= NPM_waiting_for_16)
 	{
-		const uint8_t constexpr header[2] = {0x81, 0x12};
+			const uint8_t constexpr header[2] = {0x81, 0x12};
+
 		uint8_t state[1];
 		uint8_t data[12];
 		uint8_t checksum[1];
@@ -5317,6 +5390,119 @@ static void fetchSensorNPM(String &s)
 	}
 }
 
+static void fetchSensorNPM_10sec(String &s)
+{
+	NPM_waiting_for_16 = NPM_REPLY_HEADER_16;
+
+	debug_outln_info(F("Concentration NPM..."));
+
+	NPM_cmd(PmSensorCmd::Concentration_10sec);
+ 
+
+	unsigned long timeout = millis();
+
+			last_value_NPM_P0 = -1.0f;
+		last_value_NPM_P1 = -1.0f;
+		last_value_NPM_P2 = -1.0f;
+		last_value_NPM_N1 = -1.0f;
+		last_value_NPM_N10 = -1.0f;
+		last_value_NPM_N25 = -1.0f;
+
+	do
+	{
+		debug_outln("Wait for Serial...", DEBUG_MAX_INFO);
+	} while (!serialNPM.available() && millis() - timeout < 3000);
+
+	while (serialNPM.available() >= NPM_waiting_for_16)
+	{
+		const uint8_t constexpr header[2] = {0x81, 0x11};
+		uint8_t state[1];
+		uint8_t data[12];
+		uint8_t checksum[1];
+		uint8_t test[16];
+		uint16_t N1_serial;
+		uint16_t N25_serial;
+		uint16_t N10_serial;
+		uint16_t pm1_serial;
+		uint16_t pm25_serial;
+		uint16_t pm10_serial;
+
+		switch (NPM_waiting_for_16)
+		{
+		case NPM_REPLY_HEADER_16:
+			if (serialNPM.find(header, sizeof(header)))
+				NPM_waiting_for_16 = NPM_REPLY_STATE_16;
+			break;
+		case NPM_REPLY_STATE_16:
+			serialNPM.readBytes(state, sizeof(state));
+			current_state_npm = NPM_state(state[0]);
+			NPM_waiting_for_16 = NPM_REPLY_BODY_16;
+			break;
+		case NPM_REPLY_BODY_16:
+			if (serialNPM.readBytes(data, sizeof(data)) == sizeof(data))
+			{
+				NPM_data_reader(data, 12);
+				N1_serial = word(data[0], data[1]);
+				N25_serial = word(data[2], data[3]);
+				N10_serial = word(data[4], data[5]);
+
+				pm1_serial = word(data[6], data[7]);
+				pm25_serial = word(data[8], data[9]);
+				pm10_serial = word(data[10], data[11]);
+
+				debug_outln_info(F("Next PM Measure..."));
+
+				debug_outln_verbose(F("PM1 (μg/m3) : "), String(pm1_serial / 10.0f));
+				debug_outln_verbose(F("PM2.5 (μg/m3): "), String(pm25_serial / 10.0f));
+				debug_outln_verbose(F("PM10 (μg/m3) : "), String(pm10_serial / 10.0f));
+
+				debug_outln_verbose(F("PM1 (pcs/L) : "), String(N1_serial));
+				debug_outln_verbose(F("PM2.5 (pcs/L): "), String(N25_serial));
+				debug_outln_verbose(F("PM10 (pcs/L) : "), String(N10_serial));
+			}
+			NPM_waiting_for_16 = NPM_REPLY_CHECKSUM_16;
+			break;
+		case NPM_REPLY_CHECKSUM_16:
+			serialNPM.readBytes(checksum, sizeof(checksum));
+			memcpy(test, header, sizeof(header));
+			memcpy(&test[sizeof(header)], state, sizeof(state));
+			memcpy(&test[sizeof(header) + sizeof(state)], data, sizeof(data));
+			memcpy(&test[sizeof(header) + sizeof(state) + sizeof(data)], checksum, sizeof(checksum));
+			NPM_data_reader(test, 16);
+			if (NPM_checksum_valid_16(test))
+			{
+				debug_outln_info(F("Checksum OK..."));
+
+				last_value_NPM_P0 += pm1_serial;
+				last_value_NPM_P2 += pm25_serial;
+				last_value_NPM_P1 += pm10_serial;
+
+				last_value_NPM_N1 += N1_serial;
+				last_value_NPM_N25 += N25_serial;
+				last_value_NPM_N10 += N10_serial;
+				npm_val_count++;
+				debug_outln(String(npm_val_count), DEBUG_MAX_INFO);
+			add_Value2Json(s, F("NPM_P0"), F("PM1: "), last_value_NPM_P0);
+			add_Value2Json(s, F("NPM_P1"), F("PM10:  "), last_value_NPM_P1);
+			add_Value2Json(s, F("NPM_P2"), F("PM2.5: "), last_value_NPM_P2);
+
+			add_Value2Json(s, F("NPM_N1"), F("NC1.0: "), last_value_NPM_N1);
+			add_Value2Json(s, F("NPM_N10"), F("NC10:  "), last_value_NPM_N10);
+			add_Value2Json(s, F("NPM_N25"), F("NC2.5: "), last_value_NPM_N25);
+
+			debug_outln_info(FPSTR(DBG_TXT_SEP));
+			}else
+		{
+			NPM_error_count++;
+		}
+			NPM_waiting_for_16 = NPM_REPLY_HEADER_16;
+			break;
+		}
+	}
+		npm_val_count = 0;
+		debug_outln_info(F("Temperature and humidity in NPM after measure..."));
+		current_th_npm = NPM_temp_humi();
+	}
 /*****************************************************************
  * Init LCD/OLED display                                         *
  *****************************************************************/
@@ -5333,7 +5519,7 @@ static void init_display()
 		oled_ssd1306->displayOn();
 		oled_ssd1306->setTextAlignment(TEXT_ALIGN_CENTER);
 		oled_ssd1306->drawString(64, 1, "MobileAir");
-		oled_ssd1306->drawString(0, 16, "Lorem ipsum");
+		oled_ssd1306->drawString(0, 16, measure_type_string);
 		oled_ssd1306->drawString(0, 28, "Lorem ipsum");
 		oled_ssd1306->drawString(0, 40, "Lorem ipsum");
 		oled_ssd1306->display();
@@ -5353,7 +5539,7 @@ static void init_display()
 		oled_sh1106->displayOn();
 		oled_sh1106->setTextAlignment(TEXT_ALIGN_CENTER);
 		oled_sh1106->drawString(64, 1, "MobileAir");
-		oled_sh1106->drawString(0, 16, "Lorem ipsum");
+		oled_sh1106->drawString(0, 16, measure_type_string);
 		oled_sh1106->drawString(0, 28, "Lorem ipsum");
 		oled_sh1106->drawString(0, 40, "Lorem ipsum");
 		oled_sh1106->display();
@@ -5829,7 +6015,9 @@ uint8_t datalora[LEN_PAYLOAD_LORA] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
 // 0xff, rh -1
 // 0xff, 0xff, p -1
 
-const unsigned TX_INTERVAL = (cfg::sending_intervall_ms_static) / 1000;
+
+const unsigned TX_INTERVAL_MOBILE = (cfg::sending_intervall_ms_mobile) / 1000;
+const unsigned TX_INTERVAL_STATIC = (cfg::sending_intervall_ms_static) / 1000;
 
 static osjob_t sendjob;
 
@@ -6002,7 +6190,16 @@ void onEvent(ev_t ev)
 		}
 
 		// Schedule next transmission
-		os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
+
+	if(potValue < 2926)
+	{
+		os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL_MOBILE), do_send);
+
+	}else
+	{
+		os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL_STATIC), do_send);
+
+	}
 		Debug.println(F("Next transmission scheduled"));
 		break;
 	case EV_LOST_TSYNC:
@@ -7004,8 +7201,48 @@ void setup()
 	StackPtrEnd = StackPtrAtStart - watermarkStart;
 
 	Debug.begin(115200); // Output to Serial at 115200 baud
+	//pinMode(POT_PIN, INPUT);
+	adcAttachPin(POT_PIN);
+
 	Debug.println(F("Starting"));
 
+	potValue = analogRead(POT_PIN); //Must happen before the wifi starts
+  	Debug.print("Potentiometer: ");
+	Debug.println(potValue);
+
+        switch (potValue)
+        {
+        case 0 ... 585:
+			measure_type_string = "Marche à pieds";
+			measure_type_nb = 0;
+            break;
+        case 586 ... 1170:
+			measure_type_string = "Vélo";
+			measure_type_nb = 1;
+            break;
+		case 1171 ... 1775:
+			measure_type_string = "Moto/Scooter";
+			measure_type_nb = 2;
+            break;
+        case 1776 ... 2340:
+			measure_type_string = "Voiture";
+			measure_type_nb = 3;
+            break;
+        case 2341 ... 2925:
+			measure_type_string = "Transport en commun";
+			measure_type_nb = 4;
+            break;
+        case 2926 ... 3510:
+			measure_type_string = "Fixe intérieur";
+			measure_type_nb = 5;
+            break;
+        case 3511 ... 4095:
+			measure_type_string = "Fixe extérieur";
+			measure_type_nb = 6;
+            break;
+		}
+
+	Debug.println(measure_type_string);
 	Debug.printf("\r\n\r\nAddress of Stackpointer near start is:  %p \r\n", (void *)StackPtrAtStart);
 	Debug.printf("End of Stack is near: %p \r\n", (void *)StackPtrEnd);
 	Debug.printf("Free Stack at setup is:  %d \r\n", (uint32_t)StackPtrAtStart - (uint32_t)StackPtrEnd);
@@ -7599,8 +7836,8 @@ void setup()
 			listDir(SD, "/", 0);
 			file_name = String("/") + String(GPSdata.year) + String("_") + String(GPSdata.month) + String("_") + String(GPSdata.day) + String("_") + String(GPSdata.hour) + String("_") + String(GPSdata.minute) + String("_") + String(GPSdata.second) + String(".csv");
 			writeFile(SD, file_name.c_str(), "");
-			appendFile(SD, file_name.c_str(), "Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude\n");
-			Debug.println("Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude\n");
+			appendFile(SD, file_name.c_str(), "Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude;Type\n");
+			Debug.println("Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude;Type\n");
 			file_created = true;
 		}else
 		{
@@ -7622,7 +7859,15 @@ void loop()
 
 	act_micro = micros();
 	act_milli = millis();
-	send_now = msSince(starttime) > cfg::sending_intervall_ms_static;
+
+	if(potValue < 2926)
+	{
+		send_now = msSince(starttime) > cfg::sending_intervall_ms_mobile;
+	}else
+	{
+		send_now = msSince(starttime) > cfg::sending_intervall_ms_static;
+	}
+
 
 	//REVOIR ICI SYN NTP!!!!
 
@@ -7729,10 +7974,23 @@ void loop()
 
 	if (cfg::npm_read)
 	{
-		if ((msSince(starttime_NPM) > SAMPLETIME_NPM_MS && npm_val_count == 0) || send_now)
+        switch (measure_type_nb)
+        {
+        case 0 ... 4:
+		if (send_now)
 		{
 			starttime_NPM = act_milli;
-			fetchSensorNPM(result_NPM);
+			fetchSensorNPM_10sec(result_NPM);
+		}
+            break;
+        case 5 ... 6:
+		if ((msSince(starttime_NPM) > SAMPLETIME_NPM_MS_1MIN && npm_val_count == 0) || send_now)
+		{
+			starttime_NPM = act_milli;
+			fetchSensorNPM_1min(result_NPM);
+		}
+            break;
+
 		}
 	}
 
@@ -7773,7 +8031,9 @@ void loop()
 
 	if (send_now)
 	{
+	String timestringntp;
 
+if(cfg::has_wifi && WiFi.status() == WL_CONNECTED){
 	String timestringntp;
 	if(getLocalTime(&timeinfo)){
 		  Debug.println(&timeinfo, "NTP Time: %d %B %Y %H:%M:%SZ");
@@ -7798,6 +8058,10 @@ void loop()
 	}else
 	{
 		Debug.println(&timeinfo, "No NTP Time!");
+		timestringntp = "0000-00-00T00:00:00Z";
+	}
+}else
+	{
 		timestringntp = "0000-00-00T00:00:00Z";
 	}
 	
@@ -7945,7 +8209,15 @@ void loop()
 		add_Value2Json(data, F("samples"), String(sample_count));
 		add_Value2Json(data, F("min_micro"), String(min_micro));
 		add_Value2Json(data, F("max_micro"), String(max_micro));
+
+
+	if(potValue < 2926)
+	{
+		add_Value2Json(data, F("interval"), String(cfg::sending_intervall_ms_mobile));
+	}else
+	{
 		add_Value2Json(data, F("interval"), String(cfg::sending_intervall_ms_static));
+	}
 
 		if (cfg::has_wifi)
 		{
@@ -7964,6 +8236,8 @@ void loop()
 		}
 
 		add_Value2Json(data, F("rgpd"), String(cfg::rgpd));
+		add_Value2Json(data, F("type"), String(measure_type_nb));
+
 
 		if ((unsigned)(data.lastIndexOf(',') + 1) == data.length())
 		{
@@ -8040,6 +8314,8 @@ void loop()
 			datacsv += String(GPSdata.longitude,8);
 			datacsv += ";";
 			datacsv += String(GPSdata.altitude);
+			datacsv += ";";
+			datacsv += String(measure_type_nb);
 			datacsv += "\n";
 
 			appendFile(SD, file_name.c_str(), datacsv.c_str());
@@ -8461,6 +8737,45 @@ void loop()
 
 		starttime = millis(); // store the start time
 		count_sends++;
+
+		//changement de type de mesure seulement lors du send_now
+	
+	potValue = analogRead(POT_PIN); //FOnctionne si sur ADC1
+  	Debug.print("Potentiometer: ");
+	Debug.println(potValue);
+
+        switch (potValue)
+        {
+        case 0 ... 585:
+			measure_type_string = "Marche à pieds";
+			measure_type_nb = 0;
+            break;
+        case 586 ... 1170:
+			measure_type_string = "Vélo";
+			measure_type_nb = 1;
+            break;
+		case 1171 ... 1775:
+			measure_type_string = "Moto/Scooter";
+			measure_type_nb = 2;
+            break;
+        case 1776 ... 2340:
+			measure_type_string = "Voiture";
+			measure_type_nb = 3;
+            break;
+        case 2341 ... 2925:
+			measure_type_string = "Transport en commun";
+			measure_type_nb = 4;
+            break;
+        case 2926 ... 3510:
+			measure_type_string = "Fixe intérieur";
+			measure_type_nb = 5;
+            break;
+        case 3511 ... 4095:
+			measure_type_string = "Fixe extérieur";
+			measure_type_nb = 6;
+            break;
+		}
+	Debug.println(measure_type_string);
 	}
 
 	if (sample_count % 500 == 0)

@@ -54,7 +54,8 @@ constexpr const unsigned long SAMPLETIME_SDS_MS = 1000;								// time between t
 constexpr const unsigned long WARMUPTIME_SDS_MS = 15000;								// time needed to "warm up" the sensor before we can take the first measurement
 constexpr const unsigned long READINGTIME_SDS_MS = 5000;								// how long we read data from the PM sensors
 
-constexpr const unsigned long SAMPLETIME_NPM_MS = 60000;
+constexpr const unsigned long SAMPLETIME_NPM_MS_1MIN = 60000;
+constexpr const unsigned long SAMPLETIME_NPM_MS_10SEC = 10000;
 
 constexpr const unsigned long SAMPLETIME_MHZ16_MS = 10000;
 constexpr const unsigned long SAMPLETIME_MHZ19_MS = 10000;
