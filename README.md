@@ -5,14 +5,16 @@
 New version of the air quality sensor MobileAir developped with [AtmoSud](https://www.atmosud.org/).
 
 ## Supported sensors
-* Nova PM SDS011 (PM2.5 and PM10)
 * Groupe Tera NextPM (PM1, PM2.5 and PM10)
 * CCS811 (COV)
 * BME280 (Temperature and Humidity)
 * Envea Cairsens (NO2)
+* BN-220 (GPS)
 
 ## Displays
 * WS2812B RGB LED
+* SD1306 OLED
+* SH1106 OLED
 
 ## Features
 * Gets measurements from a full range of sensors
@@ -21,12 +23,15 @@ New version of the air quality sensor MobileAir developped with [AtmoSud](https:
 
 ## Libraries
 * bblanchon/ArduinoJson@6.18.3
-* 2dom/PxMatrix LED MATRIX library@^1.8.2
 * fastled/FastLED@^3.4.0
 * mcci-catena/MCCI LoRaWAN LMIC library@^4.1.1
 * sparkfun/SparkFun_LTE_Shield_Arduino_Library@^1.3.0
 * Lahorde/cairsens_uart
 * plerup/EspSoftwareSerial@^8.0.1
+* tinyu-zhao/TinyGPSPlus-ESP32@^0.0.2
+* ThingPulse/ESP8266 and ESP32 OLED driver for SSD1306 displays @ ^4.4.0
+* maarten-pennings/CCS811 @ ^12.0.0
+
 
 And the ESP32 platform librairies:
 * Wire
@@ -39,6 +44,18 @@ And the ESP32 platform librairies:
 * WebServer
 * Update
 * ESPmDNS
+* SD
+
+## Measurement type
+A potentiometer will be used to discriminate the type of measurement:
+* Default/multi
+* Walking
+* Bike
+* Public transportation
+* Car
+* Motorbike
+* Static indoor
+* Static outdoor
 
 ## Boards
 The code is developped on a ESP32 DevC with 38 pins (equiped with a ESP-WROOM-32 module). More information about this board on the official [Espressif website](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/hw-reference/esp32/get-started-devkitc.html).
@@ -50,27 +67,76 @@ The development was made with the NBIoT board [SparkFun LTE CAT M1/NB-IoT Shield
 Please use Platformio to flash the board.
 The .ini file should be able to get all the needed boards, platforms and libraries from the internet
 
-## Pin mapping
+## Library changes
 
+To force the use of both the SPIs (LMIC and SD) on the ESP32, the SPI library and the SD library has to be corrected a bit.
+
+**SPI.cpp**
+
+Modify as this:
+```
+#if CONFIG_IDF_TARGET_ESP32
+SPIClass SPI(VSPI);
+SPIClass SPI_H(HSPI);
+#else
+SPIClass SPI(FSPI);
+#endif
+```
+
+**SPI.h**
+
+Add this line at the bottom:
+`extern SPIClass SPI_H;`
+
+**SD.cpp**
+
+Setup the pins explicitely here:
+
+`bool SDFS::begin(uint8_t ssPin, uint8_t mosiPin, uint8_t misoPin, uint8_t sckPin, SPIClass &spi, uint32_t frequency, const char * mountpoint, uint8_t max_files, bool format_if_empty)`
+
+and here:
+
+`spi.begin(sckPin, misoPin, mosiPin, ssPin);`
+
+**SD.h**
+
+Setup the pins and the SPI explicitely:
+
+`bool begin(uint8_t ssPin, uint8_t mosiPin, uint8_t misoPin, uint8_t sckPin, SPIClass &spi=SPI_H, uint32_t frequency=4000000, const char * mountpoint="/sd", uint8_t max_files=5, bool format_if_empty=false);`
+
+**sd_defines.h**
+
+Add this pin definition:
+
+```
+#define SD_SPI_BUS_CLK D14
+#define SD_SPI_BUS_MOSI D13
+#define SD_SPI_BUS_MISO D12 
+#define SD_SPI_BUS_SS D4 
+```
+
+Before the flashing, the folder SPImod has to be removed.
+
+## Pin mapping
 
 |GPIO| devices | notes |
 |----|-----|-----|
 |GPIO0|📶 lora RESET| must be LOW to enter boot mode|
 |GPI01| TX | USB Serial |
-|GPIO2| unused | Inboard LED |
+|GPIO2| 💡LEDs | Inboard LED |
 |GPIO3| RX | USB Serial |
-|GPIO4| unused |  |
-|GPIO5| 📶 lora NSS | notes |
+|GPIO4| 💾 SD NSS |  |
+|GPIO5| 📶 lora NSS |  |
 |GPIO6| &#x1F6D1; | integrated SPI flash |
 |GPIO7| &#x1F6D1; | integrated SPI flash |
 |GPIO8| &#x1F6D1; | integrated SPI flash |
 |GPIO9| &#x1F6D1; | integrated SPI flash |
 |GPIO10| &#x1F6D1; | integrated SPI flash |
 |GPIO11| &#x1F6D1; | integrated SPI flash |
-|GPIO12| unused |  |
-|GPIO13| unused |  |
-|GPIO14| unused |  |
-|GPIO15| unused |  |
+|GPIO12| 💾  SD MISO |  |
+|GPIO13| 💾  SD MOSI|  |
+|GPIO14| 💾  SD SCK|  |
+|GPIO15| 📡 GPS TX |  |
 |GPIO16| Cairsens RX |  |
 |GPIO17| Cairsens TX |  |
 |GPIO18| 📶 lora SCK |  |
@@ -78,11 +144,11 @@ The .ini file should be able to get all the needed boards, platforms and librari
 |GPIO21| SDA sensors |  |
 |GPIO22| SCL sensors |  |
 |GPIO23| 📶 lora MOSI |  |
-|GPIO25| unused |  |
+|GPIO25| 📡 GPS RX |  |
 |GPIO26| 📶 lora DIO0 |  |
 |GPIO27| SARA-R4 TX | |
 |GPIO32| NextPM RX |  |
-|GPIO33| 💡LEDs |  |
+|GPIO33| Selector |  |
 |GPIO34| 📶 lora DIO2 |  |
 |GPIO35| 📶 lora DIO1 |  |
 |GPIO36| SARA-R4 RX | |
@@ -90,7 +156,7 @@ The .ini file should be able to get all the needed boards, platforms and librari
 
 ## PCB
 
-You can find the PCB layout [here](https://oshwlab.com/pvuarambon/nebulov2_esp32).
+You can find the PCB layout [here](https://oshwlab.com/pvuarambon/moduleair_esp32).
 
 ## Configuration
 
@@ -197,7 +263,7 @@ confignbiot[6] = cfg::has_lora;
 confignbiot[7] = cfg::has_wifi;
 ```
 
-If the data is sent as byte, the sensor ID and the signal strength are sent as headers of the POST request.
+If the data is sent as bytes, the sensor ID and the signal strength are sent as headers of the POST request.
 
 ## WiFi payload
 
@@ -206,6 +272,8 @@ Example for transmited data:
 `{"software_version" : "ModuleAirV2-V1-122021", "sensordatavalues" : [ {"value_type" : "NPM_P0", "value" : "1.84"}, {"value_type" : "NPM_P1", "value" : "2.80"}, {"value_type" : "NPM_P2", "value" : "2.06"}, {"value_type" : "NPM_N1", "value" : "27.25"}, {"value_type" : "NPM_N10", "value" : "27.75"}, {"value_type" : "NPM_N25", "value" : "27.50"}, {"value_type" : "BME280_temperature", "value" : "20.84"}, {"value_type" : "BME280_pressure", "value" : "99220.03"}, {"value_type" : "BME280_humidity", "value" : "61.66"}, {"value_type" : "samples", "value" : "138555"}, {"value_type" : "min_micro", "value" : "933"}, {"value_type" : "max_micro", "value" : "351024"}, {"value_type" : "interval", "value" : "145000"}, {"value_type" : "signal", "value" : "-71"} ]}`
 
 https is newly implemented.
+
+To spare bandwitdth, the WiFi data can also be sent as bytes.
 
 ## Payload formaters
 
