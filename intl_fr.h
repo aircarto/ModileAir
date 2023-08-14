@@ -41,7 +41,8 @@ const char INTL_NBIOT_SETTINGS[] PROGMEM = "Paramètres NBIoT";
 const char INTL_MORE_SETTINGS[] PROGMEM = "Autres paramètres";
 const char INTL_SENSORS[] PROGMEM = "Capteurs";
 const char INTL_DISPLAY[] PROGMEM = "Affichage";
-const char INTL_APIS[] PROGMEM = "APIs";
+const char INTL_APIS_WIFI[] PROGMEM = "APIs WiFi";
+const char INTL_APIS_NBIOT[] PROGMEM = "APIs NBIoT";
 const char INTL_RGPD[] PROGMEM = "RGPD";
 const char INTL_RGPD_ACCEPT[] PROGMEM = "Lu et approuvé";
 const char INTL_LED_CONFIG[] PROGMEM = "Configurer l'affichage LED";
@@ -65,6 +66,8 @@ const char INTL_DURATION_ROUTER_MODE[] PROGMEM = "Durée mode routeur";
 const char INTL_MORE_APIS[] PROGMEM = "Autres API";
 const char INTL_SEND_TO_OWN_API[] PROGMEM = "Envoyer les données vers l'API AirCarto";
 const char INTL_SEND_TO_OWN_API2[] PROGMEM = "Envoyer les données vers l'API AtmoSud";
+const char INTL_API_NBIOT_JSON[] PROGMEM = "API NBIoT json";
+const char INTL_API_NBIOT_BYTE[] PROGMEM = "API NBIoT byte";
 const char INTL_SERVER[] PROGMEM = "Serveur";
 const char INTL_PATH[] PROGMEM = "Chemin";
 const char INTL_PORT[] PROGMEM = "Port";
@@ -99,6 +102,7 @@ const char INTL_ALLOW[] PROGMEM = "Autoriser";
 #define INTL_FIRMWARE "Firmware"
 #define INTL_DISPLAY "Affichage"
 #define INTL_LOCATION "Position"
+#define INTL_LOGGER "Logger"
 #define INTL_OLED "Configuration écran"
 const char INTL_DEBUG_SETTING_TO[] PROGMEM = "Paramètres de débogage";
 #define INTL_NONE "aucun"

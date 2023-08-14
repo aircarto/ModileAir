@@ -57,6 +57,18 @@ Bool		display_device_info
 Bool        has_gps
 Bool        has_ssd1306
 Bool		has_sh1106
+String		host_nbiot_json
+String		url_nbiot_json
+UInt		port_nbiot_json
+String		user_nbiot_json
+Password	pwd_nbiot_json
+Bool		ssl_nbiot_json
+String		host_nbiot_byte
+String		url_nbiot_byte
+UInt		port_nbiot_byte
+String		user_nbiot_byte
+Password	pwd_nbiot_byte
+Bool		ssl_nbiot_byte
 """
 
 with open("mobileair-cfg.h", "w") as h:

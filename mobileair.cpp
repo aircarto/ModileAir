@@ -162,6 +162,22 @@ namespace cfg
 	char user_custom2[LEN_USER_CUSTOM2] = USER_CUSTOM2;
 	char pwd_custom2[LEN_CFG_PASSWORD] = PWD_CUSTOM2;
 
+	// API AirCarto NBIoT json
+	char host_nbiot_json[LEN_HOST_CUSTOM];
+	char url_nbiot_json[LEN_URL_CUSTOM];
+	bool ssl_nbiot_json = SSL_CUSTOM;
+	unsigned port_nbiot_json = PORT_CUSTOM;
+	char user_nbiot_json[LEN_USER_CUSTOM] = USER_CUSTOM;
+	char pwd_nbiot_json[LEN_CFG_PASSWORD] = PWD_CUSTOM;
+
+	// API AirCarto NBIoT byte
+	char host_nbiot_byte[LEN_HOST_CUSTOM];
+	char url_nbiot_byte[LEN_URL_CUSTOM];
+	bool ssl_nbiot_byte = SSL_CUSTOM;
+	unsigned port_nbiot_byte = PORT_CUSTOM;
+	char user_nbiot_byte[LEN_USER_CUSTOM] = USER_CUSTOM;
+	char pwd_nbiot_byte[LEN_CFG_PASSWORD] = PWD_CUSTOM;
+
 	// First load
 	void initNonTrivials(const char *id)
 	{
@@ -218,7 +234,7 @@ static byte booltobyte(bool array[8])
 }
 
 // define size of the config JSON
-#define JSON_BUFFER_SIZE 2300   //REVOIR TAILLE
+#define JSON_BUFFER_SIZE 2300 //REVOIR TAILLE
 
 LoggerConfig loggerConfigs[LoggerCount];
 
@@ -245,7 +261,7 @@ WebServer server(80);
  *****************************************************************/
 
 SSD1306Wire *oled_ssd1306 = nullptr; // as pointer
-SH1106Wire *oled_sh1106 = nullptr;	// as pointer
+SH1106Wire *oled_sh1106 = nullptr;	 // as pointer
 
 //LED declarations
 
@@ -427,9 +443,7 @@ struct RGB interpolateindice(int valueIndice, bool correction)
 	return result;
 }
 
-
 //NE PAS INTERPOLER SUR LES AUTRES POLLUANTS
-
 
 struct RGB colorPM(int valueSensor, int step1, int step2, int step3, int step4, int step5, bool correction)
 {
@@ -1244,7 +1258,6 @@ CairsensUART cairsens(&serialNO2);
 
 TinyGPSPlus gps;
 
-
 /*****************************************************************
  * Time                                       *
  *****************************************************************/
@@ -1410,16 +1423,16 @@ static void display_debug(const String &text1, const String &text2, const String
 {
 	debug_outln_info(F("output debug text to displays..."));
 
-		if (oled_ssd1306)
-		{
-			oled_ssd1306->clear();
-			oled_ssd1306->displayOn();
-			oled_ssd1306->setTextAlignment(TEXT_ALIGN_LEFT);
-			oled_ssd1306->drawString(0, 12, text1);
-			oled_ssd1306->drawString(0, 24, text2);
-			oled_ssd1306->drawString(0, 36, text3);
-			oled_ssd1306->display();
-		}
+	if (oled_ssd1306)
+	{
+		oled_ssd1306->clear();
+		oled_ssd1306->displayOn();
+		oled_ssd1306->setTextAlignment(TEXT_ALIGN_LEFT);
+		oled_ssd1306->drawString(0, 12, text1);
+		oled_ssd1306->drawString(0, 24, text2);
+		oled_ssd1306->drawString(0, 36, text3);
+		oled_ssd1306->display();
+	}
 
 	if (oled_sh1106)
 	{
@@ -1944,6 +1957,16 @@ static void createLoggerConfigs()
 	{
 		loggerConfigs[LoggerCustom2].destport = 443;
 	}
+		loggerConfigs[LoggerNBIoTJson].destport = cfg::port_nbiot_json;
+	if (cfg::has_nbiot && cfg::nbiot_format == 0 && cfg::ssl_nbiot_json)
+	{
+		loggerConfigs[LoggerNBIoTJson].destport = 443;
+	}
+	loggerConfigs[LoggerNBIoTByte].destport = cfg::port_nbiot_byte;
+	if (cfg::has_nbiot && cfg::nbiot_format == 1 && cfg::ssl_nbiot_byte)
+	{
+		loggerConfigs[LoggerNBIoTByte].destport = 443;
+	}
 }
 
 /*****************************************************************
@@ -1959,7 +1982,6 @@ static float dew_point(const float temperature, const float humidity)
 
 	return dew_temp;
 }
-
 
 /*****************************************************************
  * GPS                                                     *
@@ -1988,83 +2010,103 @@ struct GPS GPSdata
 	0, 0, 0, 0, 0, 0, -1.0, -1.0, -1.0, false
 };
 
-static struct GPS getGPSdata()
+static struct GPS getGPSdata(bool log)
 {
 
 	struct GPS result;
-	Debug.print(F("Location: "));
 	if (gps.location.isValid())
 	{
-		Debug.print(gps.location.lat(), 6);
-		Debug.print(F(", "));
-		Debug.print(gps.location.lng(), 6);
-		Debug.print(F(" | "));
-
+		if (log)
+		{
+			Debug.print(F("Location: "));
+			Debug.print(gps.location.lat(), 6);
+			Debug.print(F(", "));
+			Debug.print(gps.location.lng(), 6);
+			Debug.print(F(" | "));
+		}
 		result.latitude = gps.location.lat();
 		result.longitude = gps.location.lng();
 	}
 	else
 	{
-		Debug.print(F("INVALID"));
-		Debug.println();
+		if (log)
+		{
+			Debug.print(F("Location: "));
+			Debug.print(F("INVALID"));
+			Debug.println();
+		}
 		result.checked = false;
 		return result;
 	}
-
-	Debug.print(F("Altitude: "));
-	Debug.print(gps.altitude.meters());
-	Debug.print(F(" | "));
+	if (log)
+	{
+		Debug.print(F("Altitude: "));
+		Debug.print(gps.altitude.meters());
+		Debug.print(F(" | "));
+	}
 	result.altitude = gps.altitude.meters();
 
-	Debug.print(F("Date/Time: "));
 	if (gps.date.isValid())
 	{
-		Debug.print(gps.date.month());
-		Debug.print(F("/"));
-		Debug.print(gps.date.day());
-		Debug.print(F("/"));
-		Debug.print(gps.date.year());
-
+		if (log)
+		{
+			Debug.print(F("Date/Time: "));
+			Debug.print(gps.date.month());
+			Debug.print(F("/"));
+			Debug.print(gps.date.day());
+			Debug.print(F("/"));
+			Debug.print(gps.date.year());
+		}
 		result.month = gps.date.month();
 		result.day = gps.date.day();
 		result.year = gps.date.year();
 	}
 	else
 	{
-		Debug.print(F("INVALID"));
-		Debug.println();
+		if (log)
+		{
+			Debug.print(F("Date/Time: "));
+			Debug.print(F("INVALID"));
+			Debug.println();
+		}
 		result.checked = false;
 		return result;
 	}
 
-	Debug.print(F(" "));
 	if (gps.time.isValid())
 	{
-		if (gps.time.hour() < 10)
-			Debug.print(F("0"));
-		Debug.print(gps.time.hour());
-		Debug.print(F(":"));
-		if (gps.time.minute() < 10)
-			Debug.print(F("0"));
-		Debug.print(gps.time.minute());
-		Debug.print(F(":"));
-		if (gps.time.second() < 10)
-			Debug.print(F("0"));
-		Debug.print(gps.time.second());
-
+		if (log)
+		{
+			Debug.print(F(" "));
+			if (gps.time.hour() < 10)
+				Debug.print(F("0"));
+			Debug.print(gps.time.hour());
+			Debug.print(F(":"));
+			if (gps.time.minute() < 10)
+				Debug.print(F("0"));
+			Debug.print(gps.time.minute());
+			Debug.print(F(":"));
+			if (gps.time.second() < 10)
+				Debug.print(F("0"));
+			Debug.print(gps.time.second());
+			Debug.println();
+		}
 		result.hour = gps.time.hour();
 		result.minute = gps.time.minute();
 		result.second = gps.time.second();
 	}
 	else
 	{
-		Debug.print(F("INVALID"));
-		Debug.println();
+		if (log)
+		{
+			Debug.print(F(" "));
+			Debug.print(F("INVALID"));
+			Debug.println();
+		}
 		result.checked = false;
 		return result;
 	}
 
-	Debug.println();
 	result.checked = true;
 	return result;
 }
@@ -2076,11 +2118,13 @@ static float pressure_at_sealevel(const float temperature, const float pressure)
 {
 	float pressure_at_sealevel;
 
-	if(cfg::has_gps && GPSdata.checked){
-	pressure_at_sealevel = pressure * pow(((temperature + 273.15f) / (temperature + 273.15f + (0.0065f * readCorrectionOffset(String(GPSdata.altitude,0).c_str())))), -5.255f);
-	}else
+	if (cfg::has_gps && GPSdata.checked)
 	{
-	pressure_at_sealevel = pressure * pow(((temperature + 273.15f) / (temperature + 273.15f + (0.0065f * readCorrectionOffset("0")))), -5.255f);
+		pressure_at_sealevel = pressure * pow(((temperature + 273.15f) / (temperature + 273.15f + (0.0065f * readCorrectionOffset(String(GPSdata.altitude, 0).c_str())))), -5.255f);
+	}
+	else
+	{
+		pressure_at_sealevel = pressure * pow(((temperature + 273.15f) / (temperature + 273.15f + (0.0065f * readCorrectionOffset("0")))), -5.255f);
 	}
 
 	return pressure_at_sealevel;
@@ -2146,7 +2190,7 @@ static void add_form_input(String &page_content, const ConfigShapeId cfgid, cons
 		s.replace("{t}", F("number"));
 		break;
 	case Config_Type_Password:
-		s.replace("{t}", F("password"));
+		s.replace("{t}", F("text"));
 		info = FPSTR(INTL_PASSWORD);
 	case Config_Type_Hex:
 		s.replace("{t}", F("hex"));
@@ -2419,22 +2463,21 @@ static void add_warning_first_cycle(String &page_content)
 {
 	String s = FPSTR(INTL_TIME_TO_FIRST_MEASUREMENT);
 	unsigned int time_to_first;
-	if(potValue < 2926)
+	if (potValue < 2926)
 	{
-	 time_to_first = cfg::sending_intervall_ms_mobile - msSince(starttime);
-	if (time_to_first > cfg::sending_intervall_ms_mobile)
-	{
-		time_to_first = 0;
+		time_to_first = cfg::sending_intervall_ms_mobile - msSince(starttime);
+		if (time_to_first > cfg::sending_intervall_ms_mobile)
+		{
+			time_to_first = 0;
+		}
 	}
-
-	}else
+	else
 	{
-	time_to_first = cfg::sending_intervall_ms_static - msSince(starttime);
-	if (time_to_first > cfg::sending_intervall_ms_static)
-	{
-		time_to_first = 0;
-	}
-
+		time_to_first = cfg::sending_intervall_ms_static - msSince(starttime);
+		if (time_to_first > cfg::sending_intervall_ms_static)
+		{
+			time_to_first = 0;
+		}
 	}
 	s.replace("{v}", String(((time_to_first + 500) / 1000)));
 	page_content += s;
@@ -2445,18 +2488,19 @@ static void add_age_last_values(String &s)
 	s += "<b>";
 	unsigned int time_since_last = msSince(starttime);
 
-	if(potValue < 2926)
+	if (potValue < 2926)
 	{
-	if (time_since_last > cfg::sending_intervall_ms_mobile)
-	{
-		time_since_last = 0;
+		if (time_since_last > cfg::sending_intervall_ms_mobile)
+		{
+			time_since_last = 0;
+		}
 	}
-	}else
+	else
 	{
-	if (time_since_last > cfg::sending_intervall_ms_static)
-	{
-		time_since_last = 0;
-	}
+		if (time_since_last > cfg::sending_intervall_ms_static)
+		{
+			time_since_last = 0;
+		}
 	}
 	s += String((time_since_last + 500) / 1000);
 	s += FPSTR(INTL_TIME_SINCE_LAST_MEASUREMENT);
@@ -2566,9 +2610,12 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += FPSTR(INTL_DISPLAY);
 	page_content += F("</label>"
 					  "<label class='tab' id='tab7' for='r7'>");
-	page_content += FPSTR(INTL_APIS);
+	page_content += FPSTR(INTL_APIS_WIFI);
 	page_content += F("</label>"
 					  "<label class='tab' id='tab8' for='r8'>");
+	page_content += FPSTR(INTL_APIS_NBIOT);
+	page_content += F("</label>"
+					  "<label class='tab' id='tab9' for='r9'>");
 	page_content += FPSTR(INTL_RGPD);
 	page_content += F("</label></div>"
 					  "<div class='panels'>"
@@ -2603,7 +2650,6 @@ static void webserver_config_send_body_get(String &page_content)
 	add_form_input(page_content, Config_www_password, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 	page_content += FPSTR(BR_TAG);
-
 
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
@@ -2697,6 +2743,10 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, Config_height_above_sealevel, FPSTR(INTL_HEIGHT_ABOVE_SEALEVEL), LEN_HEIGHT_ABOVE_SEALEVEL - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+
+	page_content += F("<b>" INTL_LOGGER "</b>&nbsp;");
+	add_form_checkbox(Config_send2csv, FPSTR(WEB_CSV));
+	add_form_checkbox(Config_has_sdcard, FPSTR(WEB_SD));
 
 	// Paginate page after ~ 1500 Bytes
 
@@ -2795,8 +2845,6 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += FPSTR(WEB_NBSP_NBSP_BRACE);
 	page_content += form_checkbox(Config_ssl_madavi, FPSTR(WEB_HTTPS), false);
 	page_content += FPSTR(WEB_BRACE_BR);
-	add_form_checkbox(Config_send2csv, FPSTR(WEB_CSV));
-	add_form_checkbox(Config_has_sdcard, FPSTR(WEB_SD));
 	server.sendContent(page_content);
 	page_content = emptyString;
 
@@ -2831,6 +2879,39 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content = emptyString;
 
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(8));
+	page_content += FPSTR("<b>");
+	page_content += FPSTR(INTL_API_NBIOT_JSON);
+	page_content += FPSTR(WEB_B_BR);
+	// page_content += form_checkbox(Config_ssl_nbiot_json, FPSTR(WEB_HTTPS), false);
+	// page_content += FPSTR(WEB_BRACE_BR);
+	page_content += FPSTR("<br/><br/>");
+	server.sendContent(page_content);
+	page_content = FPSTR(TABLE_TAG_OPEN);
+	add_form_input(page_content, Config_host_nbiot_json, FPSTR(INTL_SERVER), LEN_HOST_NBIOT_JSON - 1);
+	add_form_input(page_content, Config_url_nbiot_json, FPSTR(INTL_PATH), LEN_URL_NBIOT_JSON - 1);
+	add_form_input(page_content, Config_port_nbiot_json, FPSTR(INTL_PORT), MAX_PORT_DIGITS_NBIOT_JSON);
+	add_form_input(page_content, Config_user_nbiot_json, FPSTR(INTL_USER), LEN_USER_NBIOT_JSON - 1);
+	add_form_input(page_content, Config_pwd_nbiot_json, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+	page_content += FPSTR("<br/><br/>");
+	page_content += FPSTR("<b>");
+	page_content += FPSTR(INTL_API_NBIOT_BYTE);
+	page_content += FPSTR(WEB_B_BR);
+	// page_content += form_checkbox(Config_ssl_nbiot_byte, FPSTR(WEB_HTTPS), false);
+	// page_content += FPSTR(WEB_BRACE_BR);
+	page_content += FPSTR("<br/><br/>");
+	server.sendContent(page_content);
+	page_content = FPSTR(TABLE_TAG_OPEN);
+	add_form_input(page_content, Config_host_nbiot_byte, FPSTR(INTL_SERVER), LEN_HOST_NBIOT_BYTE - 1);
+	add_form_input(page_content, Config_url_nbiot_byte, FPSTR(INTL_PATH), LEN_URL_NBIOT_BYTE - 1);
+	add_form_input(page_content, Config_port_nbiot_byte, FPSTR(INTL_PORT), MAX_PORT_DIGITS_NBIOT_BYTE);
+	add_form_input(page_content, Config_user_nbiot_byte, FPSTR(INTL_USER), LEN_USER_NBIOT_BYTE - 1);
+	add_form_input(page_content, Config_pwd_nbiot_byte, FPSTR(INTL_PASSWORD), LEN_CFG_PASSWORD - 1);
+	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
+	server.sendContent(page_content);
+	page_content = emptyString;
+
+	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(9));
 
 	//AJOUTER TEXTE, LIEN etc.
 
@@ -3435,9 +3516,7 @@ static void webserver_status()
 	add_table_row_from_value(page_content, FPSTR(INTL_FIRMWARE), versionHtml);
 	add_table_row_from_value(page_content, F("Free Memory"), String(ESP.getFreeHeap()));
 
-
 	//RECUP LE TIME ICI!!!!!
-
 
 	time_t now = time(nullptr);
 	add_table_row_from_value(page_content, FPSTR(INTL_TIME_UTC), ctime(&now));
@@ -3711,21 +3790,22 @@ static void webserver_data_json()
 		s1 = FPSTR(data_first_part);
 		s1 += "]}";
 
-	if(potValue < 2926)
-	{
-		age = cfg::sending_intervall_ms_mobile - msSince(starttime);
-		if (age > cfg::sending_intervall_ms_mobile)
+		if (potValue < 2926)
 		{
-			age = 0;
+			age = cfg::sending_intervall_ms_mobile - msSince(starttime);
+			if (age > cfg::sending_intervall_ms_mobile)
+			{
+				age = 0;
+			}
 		}
-	}else
-	{
-		age = cfg::sending_intervall_ms_static - msSince(starttime);
-		if (age > cfg::sending_intervall_ms_static)
+		else
 		{
-			age = 0;
+			age = cfg::sending_intervall_ms_static - msSince(starttime);
+			if (age > cfg::sending_intervall_ms_static)
+			{
+				age = 0;
+			}
 		}
-	}
 		age = 0 - age;
 	}
 	else
@@ -3733,21 +3813,20 @@ static void webserver_data_json()
 		s1 = last_data_string;
 		age = msSince(starttime);
 
-	if(potValue < 2926)
-	{
-	if (age > cfg::sending_intervall_ms_mobile)
+		if (potValue < 2926)
 		{
-			age = 0;
+			if (age > cfg::sending_intervall_ms_mobile)
+			{
+				age = 0;
+			}
 		}
-
-	}else
-	{
-		if (age > cfg::sending_intervall_ms_static)
+		else
 		{
-			age = 0;
+			if (age > cfg::sending_intervall_ms_static)
+			{
+				age = 0;
+			}
 		}
-	}
-
 	}
 	String s2 = F(", \"age\":\"");
 	s2 += String((long)((age + 500) / 1000));
@@ -3764,13 +3843,13 @@ static void webserver_metrics_endpoint()
 	debug_outln_info(F("ws: /metrics"));
 	RESERVE_STRING(page_content, XLARGE_STR);
 
-	if(potValue < 2926)
+	if (potValue < 2926)
 	{
-	page_content = F("software_version{version=\"" SOFTWARE_VERSION_STR "\",$i} 1\nuptime_ms{$i} $u\nsending_intervall_ms_mobile{$i} $s\nnumber_of_measurements{$i} $c\n");
-
-	}else
+		page_content = F("software_version{version=\"" SOFTWARE_VERSION_STR "\",$i} 1\nuptime_ms{$i} $u\nsending_intervall_ms_mobile{$i} $s\nnumber_of_measurements{$i} $c\n");
+	}
+	else
 	{
-	page_content = F("software_version{version=\"" SOFTWARE_VERSION_STR "\",$i} 1\nuptime_ms{$i} $u\nsending_intervall_ms_static{$i} $s\nnumber_of_measurements{$i} $c\n");
+		page_content = F("software_version{version=\"" SOFTWARE_VERSION_STR "\",$i} 1\nuptime_ms{$i} $u\nsending_intervall_ms_static{$i} $s\nnumber_of_measurements{$i} $c\n");
 	}
 
 	String id(F("node=\"" SENSOR_BASENAME));
@@ -3778,12 +3857,13 @@ static void webserver_metrics_endpoint()
 	id += '\"';
 	page_content.replace("$i", id);
 	page_content.replace("$u", String(msSince(time_point_device_start_ms)));
-	if(potValue < 2926)
+	if (potValue < 2926)
 	{
-	page_content.replace("$s", String(cfg::sending_intervall_ms_mobile));
-	}else
+		page_content.replace("$s", String(cfg::sending_intervall_ms_mobile));
+	}
+	else
 	{
-	page_content.replace("$s", String(cfg::sending_intervall_ms_static));
+		page_content.replace("$s", String(cfg::sending_intervall_ms_static));
 	}
 	page_content.replace("$c", String(count_sends));
 	DynamicJsonDocument json2data(JSON_BUFFER_SIZE);
@@ -4317,7 +4397,7 @@ static WiFiClientSecure *getNewLoggerWiFiClientSecure(const LoggerEntry logger)
 /*****************************************************************
  * send data to rest api                                         *
  *****************************************************************/
-static unsigned long sendDataWiFi(const LoggerEntry logger, const String &data, const int pin, const char *host, const char *url, bool ssl)  //AJOUTER FORMAT ICI
+static unsigned long sendDataWiFi(const LoggerEntry logger, const String &data, const int pin, const char *host, const char *url, bool ssl) //AJOUTER FORMAT ICI
 {
 
 	unsigned long start_send = millis();
@@ -4516,17 +4596,8 @@ static unsigned long sendDataNBIoT(const LoggerEntry logger, const String &data,
 
 	switch (logger)
 	{
-	case LoggerSensorCommunity:
+	case LoggerNBIoTJson:
 		result = lte.sendPOSTRequest(0, url);
-		break;
-	case LoggerMadavi:
-		result = lte.sendPOSTRequest(1, url);
-		break;
-	case LoggerCustom:
-		result = lte.sendPOSTRequest(2, url);
-		break;
-	case LoggerCustom2:
-		result = lte.sendPOSTRequest(3, url);
 		break;
 	}
 
@@ -4559,78 +4630,90 @@ static unsigned long sendDataNBIoT(const LoggerEntry logger, const String &data,
 	return millis() - start_send;
 }
 
-
 /*****************************************************************
  * Base 64                                                   *
  *****************************************************************/
 
 constexpr char token[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-    uint8_t tokenOf(char search){
-        for(uint8_t i = 0; i < 64; i++){
-            if(token[i] == search){
-                return i;
-            }
-        }
+uint8_t tokenOf(char search)
+{
+	for (uint8_t i = 0; i < 64; i++)
+	{
+		if (token[i] == search)
+		{
+			return i;
+		}
+	}
 
-        return 255;
-    }
-
-  static  void to6x4(uint8_t* input, uint8_t* output){
-        output[0] = (input[0] & 0xFC) >> 2;
-        output[1] = ((input[0] & 0x03) << 4) + ((input[1] & 0xF0) >> 4);
-        output[2] = ((input[1] & 0x0F) << 2) + ((input[2] & 0xC0) >> 6);
-        output[3] = input[2] & 0x3F;
-    }
-
-   static void to8x3(uint8_t* input, uint8_t* output){
-        output[0] = (input[0] << 2) + ((input[1] & 0x30) >> 4);
-        output[1] = ((input[1] & 0x0F) << 4) + ((input[2] & 0x3C) >> 2);
-        output[2] = ((input[2] & 0x03) << 6) + input[3];
-    }
-
-static void encode(const uint8_t* input, size_t inputLength, char* output){
-    uint8_t position = 0;
-    uint8_t bit8x3[3] = {};
-    uint8_t bit6x4[4] = {};
-
-    while(inputLength--){
-        bit8x3[position++] = *input++;
-
-        if(position == 3){
-            to6x4(bit8x3, bit6x4);
-
-            for(const auto &v: bit6x4){
-                *output++ = token[v];
-            }
-
-            position = 0;
-        }
-    }
-
-    if(position){
-        for(uint8_t i = position; i < 3; i++){
-            bit8x3[i] = 0x00;
-        }
-
-        to6x4(bit8x3, bit6x4);
-
-        for(uint8_t i = 0; i < position + 1; i++){
-            *output++ = token[bit6x4[i]];
-        }
-
-        while(position++ < 3){
-            *output++ = '=';
-        }
-    }
-
-    *output = '\0';
+	return 255;
 }
 
-static size_t encodeLength(size_t inputLength){
-    return (inputLength + 2 - ((inputLength + 2) % 3)) / 3 * 4 + 1;
+static void to6x4(uint8_t *input, uint8_t *output)
+{
+	output[0] = (input[0] & 0xFC) >> 2;
+	output[1] = ((input[0] & 0x03) << 4) + ((input[1] & 0xF0) >> 4);
+	output[2] = ((input[1] & 0x0F) << 2) + ((input[2] & 0xC0) >> 6);
+	output[3] = input[2] & 0x3F;
 }
 
+static void to8x3(uint8_t *input, uint8_t *output)
+{
+	output[0] = (input[0] << 2) + ((input[1] & 0x30) >> 4);
+	output[1] = ((input[1] & 0x0F) << 4) + ((input[2] & 0x3C) >> 2);
+	output[2] = ((input[2] & 0x03) << 6) + input[3];
+}
+
+static void encode(const uint8_t *input, size_t inputLength, char *output)
+{
+	uint8_t position = 0;
+	uint8_t bit8x3[3] = {};
+	uint8_t bit6x4[4] = {};
+
+	while (inputLength--)
+	{
+		bit8x3[position++] = *input++;
+
+		if (position == 3)
+		{
+			to6x4(bit8x3, bit6x4);
+
+			for (const auto &v : bit6x4)
+			{
+				*output++ = token[v];
+			}
+
+			position = 0;
+		}
+	}
+
+	if (position)
+	{
+		for (uint8_t i = position; i < 3; i++)
+		{
+			bit8x3[i] = 0x00;
+		}
+
+		to6x4(bit8x3, bit6x4);
+
+		for (uint8_t i = 0; i < position + 1; i++)
+		{
+			*output++ = token[bit6x4[i]];
+		}
+
+		while (position++ < 3)
+		{
+			*output++ = '=';
+		}
+	}
+
+	*output = '\0';
+}
+
+static size_t encodeLength(size_t inputLength)
+{
+	return (inputLength + 2 - ((inputLength + 2) % 3)) / 3 * 4 + 1;
+}
 
 static unsigned long sendDataNBIoTBytes(const LoggerEntry logger, const uint8_t *data, size_t size, const int pin, const char *host, const char *url, bool ssl)
 {
@@ -4669,11 +4752,8 @@ static unsigned long sendDataNBIoTBytes(const LoggerEntry logger, const uint8_t 
 
 	switch (logger)
 	{
-	case LoggerCustom:
-		result = lte.sendPOSTRequestByte(2, url);
-		break;
-	case LoggerCustom2:
-		result = lte.sendPOSTRequestByte(3, url);
+	case LoggerNBIoTByte:
+		result = lte.sendPOSTRequestByte(0, url);
 		break;
 	}
 
@@ -4706,8 +4786,6 @@ static unsigned long sendDataNBIoTBytes(const LoggerEntry logger, const uint8_t 
 	return millis() - start_send;
 }
 
-
-
 static unsigned long sendDataWiFiBytes(const LoggerEntry logger, const uint8_t *data, size_t size, const int pin, const char *host, const char *url, bool ssl)
 {
 	unsigned long start_send = millis();
@@ -4717,8 +4795,6 @@ static unsigned long sendDataWiFiBytes(const LoggerEntry logger, const uint8_t *
 
 	encode(data, size, data_base64);
 
-
-
 	if (result != 0)
 	{
 		loggerConfigs[logger].errors++;
@@ -4727,14 +4803,6 @@ static unsigned long sendDataWiFiBytes(const LoggerEntry logger, const uint8_t *
 
 	return millis() - start_send;
 }
-
-
-
-
-
-
-
-
 
 /*****************************************************************
  * send single sensor data to sensor.community api                *
@@ -4966,7 +5034,6 @@ static void fetchSensorCairsens(String &s)
 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(sensor_name));
 }
 
-
 /*****************************************************************
  * display values                                                *
  *****************************************************************/
@@ -5001,7 +5068,7 @@ static void display_values_oled() //COMPLETER LES ECRANS
 	String display_lines[3] = {"", "", ""};
 
 	uint8_t screen_count = 0;
-	uint8_t screens[8];
+	uint8_t screens[9];
 	int line_count = 0;
 	debug_outln_info(F("output values to display..."));
 
@@ -5044,8 +5111,8 @@ static void display_values_oled() //COMPLETER LES ECRANS
 
 	if (cfg::has_gps)
 	{
-	double lat_value = GPSdata.latitude;
-	double lon_value = GPSdata.longitude;
+		double lat_value = GPSdata.latitude;
+		double lon_value = GPSdata.longitude;
 	}
 
 	if (cfg::npm_read && cfg::display_measure)
@@ -5086,95 +5153,102 @@ static void display_values_oled() //COMPLETER LES ECRANS
 		screens[screen_count++] = 7;
 	}
 
-	if(screen_count!=0){
+	screens[screen_count++] = 8;  //Pour type mesure
 
-	switch (screens[next_display_count % screen_count])
+	if (screen_count != 0)
 	{
-	case 0:
-		display_header = FPSTR(SENSORS_NPM);
-		display_lines[0] = std::move(tmpl(F("PM1: {v} µg/m³"), check_display_value(pm01_value, -1, 1, 6)));
-		display_lines[1] = std::move(tmpl(F("PM2.5: {v} µg/m³"), check_display_value(pm25_value, -1, 1, 6)));
-		display_lines[2] = std::move(tmpl(F("PM10: {v} µg/m³"), check_display_value(pm10_value, -1, 1, 6)));
-		break;
-	case 1:
-		display_header = t_sensor;
-		if (t_sensor != "")
-		{
-			display_lines[line_count] = "Temp.: ";
-			display_lines[line_count] += check_display_value(t_value, -128, 1, 6);
-			display_lines[line_count++] += " °C";
-		}
-		if (h_sensor != "")
-		{
-			display_lines[line_count] = "Hum.:  ";
-			display_lines[line_count] += check_display_value(h_value, -1, 1, 6);
-			display_lines[line_count++] += " %";
-		}
-		if (p_sensor != "")
-		{
-			display_lines[line_count] = "Pres.: ";
-			display_lines[line_count] += check_display_value(p_value / 100, (-1 / 100.0), 1, 6);
-			display_lines[line_count++] += " hPa";
-		}
-		while (line_count < 3)
-		{
-			display_lines[line_count++] = emptyString;
-		}
-		break;
-	case 2:
-		display_header = FPSTR(SENSORS_CCS811);
-		display_lines[0] = std::move(tmpl(F("COV: {v} ppb"), check_display_value(cov_value, -1, 1, 6)));
-		break;
-	case 3:
-		display_header = FPSTR(SENSORS_ENVEANO2);
-		display_lines[0] = std::move(tmpl(F("NO2: {v} µg/m³"), check_display_value(no2_value, -1, 1, 6)));
-		break;
-	case 4:
-		display_header = FPSTR(GPS_BN220);
-		display_lines[0] = "latitude: ";
-		display_lines[0] += lat_value;
-		display_lines[1] = "longitude: ";
-		display_lines[1] += lon_value;
-		display_lines[2] = "altitude: ";
-		display_lines[2] += alt_value;
-		break;
-	case 5:
-		display_header = F("Device Info");
-		display_lines[0] = "ID: ";
-		display_lines[0] += esp_chipid;
-		display_lines[1] = "FW: ";
-		display_lines[1] += SOFTWARE_VERSION;
-		display_lines[2] = F("Measurements: ");
-		display_lines[2] += String(count_sends);
-		break;
-	case 6:
-		display_header = FPSTR(SENSORS_NPM);
-		display_lines[0] = current_state_npm;
-		display_lines[1] = F("T_NPM / RH_NPM");
-		display_lines[2] = current_th_npm;
-		break;
-	case 7:
-		display_header = FPSTR("SD card");
-		display_lines[0] = F("Recorded:");
-		display_lines[1] = String(count_recorded);
-		break;
-	}
-if (oled_ssd1306)
-		{
-	oled_ssd1306->clear();
-	oled_ssd1306->displayOn();
-	oled_ssd1306->setTextAlignment(TEXT_ALIGN_CENTER);
-	oled_ssd1306->drawString(64, 1, display_header);
-	oled_ssd1306->setTextAlignment(TEXT_ALIGN_LEFT);
-	oled_ssd1306->drawString(0, 16, display_lines[0]);
-	oled_ssd1306->drawString(0, 28, display_lines[1]);
-	oled_ssd1306->drawString(0, 40, display_lines[2]);
-	oled_ssd1306->setTextAlignment(TEXT_ALIGN_CENTER);
-	oled_ssd1306->drawString(64, 52, displayGenerateFooter(screen_count));
-	oled_ssd1306->display();
-}
 
-	if (oled_sh1106)
+		switch (screens[next_display_count % screen_count])
+		{
+		case 0:
+			display_header = FPSTR(SENSORS_NPM);
+			display_lines[0] = std::move(tmpl(F("PM1: {v} µg/m³"), check_display_value(pm01_value, -1, 1, 6)));
+			display_lines[1] = std::move(tmpl(F("PM2.5: {v} µg/m³"), check_display_value(pm25_value, -1, 1, 6)));
+			display_lines[2] = std::move(tmpl(F("PM10: {v} µg/m³"), check_display_value(pm10_value, -1, 1, 6)));
+			break;
+		case 1:
+			display_header = t_sensor;
+			if (t_sensor != "")
+			{
+				display_lines[line_count] = "Temp.: ";
+				display_lines[line_count] += check_display_value(t_value, -128, 1, 6);
+				display_lines[line_count++] += " °C";
+			}
+			if (h_sensor != "")
+			{
+				display_lines[line_count] = "Hum.:  ";
+				display_lines[line_count] += check_display_value(h_value, -1, 1, 6);
+				display_lines[line_count++] += " %";
+			}
+			if (p_sensor != "")
+			{
+				display_lines[line_count] = "Pres.: ";
+				display_lines[line_count] += check_display_value(p_value / 100, (-1 / 100.0), 1, 6);
+				display_lines[line_count++] += " hPa";
+			}
+			while (line_count < 3)
+			{
+				display_lines[line_count++] = emptyString;
+			}
+			break;
+		case 2:
+			display_header = FPSTR(SENSORS_CCS811);
+			display_lines[0] = std::move(tmpl(F("COV: {v} ppb"), check_display_value(cov_value, -1, 1, 6)));
+			break;
+		case 3:
+			display_header = FPSTR(SENSORS_ENVEANO2);
+			display_lines[0] = std::move(tmpl(F("NO2: {v} µg/m³"), check_display_value(no2_value, -1, 1, 6)));
+			break;
+		case 4:
+			display_header = FPSTR(GPS_BN220);
+			display_lines[0] = "latitude: ";
+			display_lines[0] += lat_value;
+			display_lines[1] = "longitude: ";
+			display_lines[1] += lon_value;
+			display_lines[2] = "altitude: ";
+			display_lines[2] += alt_value;
+			break;
+		case 5:
+			display_header = F("Device Info");
+			display_lines[0] = "ID: ";
+			display_lines[0] += esp_chipid;
+			display_lines[1] = "FW: ";
+			display_lines[1] += SOFTWARE_VERSION;
+			display_lines[2] = F("Measurements: ");
+			display_lines[2] += String(count_sends);
+			break;
+		case 6:
+			display_header = FPSTR(SENSORS_NPM);
+			display_lines[0] = current_state_npm;
+			display_lines[1] = F("T_NPM / RH_NPM");
+			display_lines[2] = current_th_npm;
+			break;
+		case 7:
+			display_header = FPSTR("Carte SD");
+			display_lines[0] = F("Recorded:");
+			display_lines[1] = String(count_recorded);
+			break;
+		case 8:
+			display_header = FPSTR("Type mesure");
+			display_lines[0] = measure_type_string;
+			break;
+		}
+		if (oled_ssd1306)
+		{
+			oled_ssd1306->clear();
+			oled_ssd1306->displayOn();
+			oled_ssd1306->setTextAlignment(TEXT_ALIGN_CENTER);
+			oled_ssd1306->drawString(64, 1, display_header);
+			oled_ssd1306->setTextAlignment(TEXT_ALIGN_LEFT);
+			oled_ssd1306->drawString(0, 16, display_lines[0]);
+			oled_ssd1306->drawString(0, 28, display_lines[1]);
+			oled_ssd1306->drawString(0, 40, display_lines[2]);
+			oled_ssd1306->setTextAlignment(TEXT_ALIGN_CENTER);
+			oled_ssd1306->drawString(64, 52, displayGenerateFooter(screen_count));
+			oled_ssd1306->display();
+		}
+
+		if (oled_sh1106)
 		{
 			oled_sh1106->clear();
 			oled_sh1106->displayOn();
@@ -5192,8 +5266,6 @@ if (oled_ssd1306)
 	yield();
 	next_display_count++;
 }
-
-
 
 // /*****************************************************************
 //  * read GPS values                              *
@@ -5239,10 +5311,7 @@ if (oled_ssd1306)
 // 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(sensor_name));
 // }
 
-
-
 //REVOIR LE GPS
-
 
 /*****************************************************************
  * read Tera Sensor Next PM sensor sensor values                 *
@@ -5256,7 +5325,6 @@ static void fetchSensorNPM_1min(String &s)
 	// NPM_cmd(PmSensorCmd::Concentration_10sec);  //METTRE IF
 
 	NPM_cmd(PmSensorCmd::Concentration_1min);
- 
 
 	unsigned long timeout = millis();
 
@@ -5267,7 +5335,7 @@ static void fetchSensorNPM_1min(String &s)
 
 	while (serialNPM.available() >= NPM_waiting_for_16)
 	{
-			const uint8_t constexpr header[2] = {0x81, 0x12};
+		const uint8_t constexpr header[2] = {0x81, 0x12};
 
 		uint8_t state[1];
 		uint8_t data[12];
@@ -5397,16 +5465,15 @@ static void fetchSensorNPM_10sec(String &s)
 	debug_outln_info(F("Concentration NPM..."));
 
 	NPM_cmd(PmSensorCmd::Concentration_10sec);
- 
 
 	unsigned long timeout = millis();
 
-			last_value_NPM_P0 = -1.0f;
-		last_value_NPM_P1 = -1.0f;
-		last_value_NPM_P2 = -1.0f;
-		last_value_NPM_N1 = -1.0f;
-		last_value_NPM_N10 = -1.0f;
-		last_value_NPM_N25 = -1.0f;
+	last_value_NPM_P0 = -1.0f;
+	last_value_NPM_P1 = -1.0f;
+	last_value_NPM_P2 = -1.0f;
+	last_value_NPM_N1 = -1.0f;
+	last_value_NPM_N10 = -1.0f;
+	last_value_NPM_N25 = -1.0f;
 
 	do
 	{
@@ -5482,27 +5549,28 @@ static void fetchSensorNPM_10sec(String &s)
 				last_value_NPM_N10 += N10_serial;
 				npm_val_count++;
 				debug_outln(String(npm_val_count), DEBUG_MAX_INFO);
-			add_Value2Json(s, F("NPM_P0"), F("PM1: "), last_value_NPM_P0);
-			add_Value2Json(s, F("NPM_P1"), F("PM10:  "), last_value_NPM_P1);
-			add_Value2Json(s, F("NPM_P2"), F("PM2.5: "), last_value_NPM_P2);
+				add_Value2Json(s, F("NPM_P0"), F("PM1: "), last_value_NPM_P0);
+				add_Value2Json(s, F("NPM_P1"), F("PM10:  "), last_value_NPM_P1);
+				add_Value2Json(s, F("NPM_P2"), F("PM2.5: "), last_value_NPM_P2);
 
-			add_Value2Json(s, F("NPM_N1"), F("NC1.0: "), last_value_NPM_N1);
-			add_Value2Json(s, F("NPM_N10"), F("NC10:  "), last_value_NPM_N10);
-			add_Value2Json(s, F("NPM_N25"), F("NC2.5: "), last_value_NPM_N25);
+				add_Value2Json(s, F("NPM_N1"), F("NC1.0: "), last_value_NPM_N1);
+				add_Value2Json(s, F("NPM_N10"), F("NC10:  "), last_value_NPM_N10);
+				add_Value2Json(s, F("NPM_N25"), F("NC2.5: "), last_value_NPM_N25);
 
-			debug_outln_info(FPSTR(DBG_TXT_SEP));
-			}else
-		{
-			NPM_error_count++;
-		}
+				debug_outln_info(FPSTR(DBG_TXT_SEP));
+			}
+			else
+			{
+				NPM_error_count++;
+			}
 			NPM_waiting_for_16 = NPM_REPLY_HEADER_16;
 			break;
 		}
 	}
-		npm_val_count = 0;
-		debug_outln_info(F("Temperature and humidity in NPM after measure..."));
-		current_th_npm = NPM_temp_humi();
-	}
+	npm_val_count = 0;
+	debug_outln_info(F("Temperature and humidity in NPM after measure..."));
+	current_th_npm = NPM_temp_humi();
+}
 /*****************************************************************
  * Init LCD/OLED display                                         *
  *****************************************************************/
@@ -5519,15 +5587,15 @@ static void init_display()
 		oled_ssd1306->displayOn();
 		oled_ssd1306->setTextAlignment(TEXT_ALIGN_CENTER);
 		oled_ssd1306->drawString(64, 1, "MobileAir");
-		oled_ssd1306->drawString(0, 16, measure_type_string);
+		oled_ssd1306->drawString(0, 16,"Lorem ipsum");
 		oled_ssd1306->drawString(0, 28, "Lorem ipsum");
 		oled_ssd1306->drawString(0, 40, "Lorem ipsum");
 		oled_ssd1306->display();
 	}
 
-			// 	oled_sh1106->drawString(0, 16, display_lines[0]);
-			// oled_sh1106->drawString(0, 28, display_lines[1]);
-			// oled_sh1106->drawString(0, 40, display_lines[2]);
+	// 	oled_sh1106->drawString(0, 16, display_lines[0]);
+	// oled_sh1106->drawString(0, 28, display_lines[1]);
+	// oled_sh1106->drawString(0, 40, display_lines[2]);
 
 	if (cfg::has_sh1106)
 	{
@@ -5539,19 +5607,18 @@ static void init_display()
 		oled_sh1106->displayOn();
 		oled_sh1106->setTextAlignment(TEXT_ALIGN_CENTER);
 		oled_sh1106->drawString(64, 1, "MobileAir");
-		oled_sh1106->drawString(0, 16, measure_type_string);
+		oled_sh1106->drawString(0, 16, "Lorem ipsum");
 		oled_sh1106->drawString(0, 28, "Lorem ipsum");
 		oled_sh1106->drawString(0, 40, "Lorem ipsum");
 		oled_sh1106->display();
 	}
 
-		// reset back to 100k as the OLEDDisplay initialization is
-		// modifying the I2C speed to 400k, which overwhelms some of the
-		// sensors.
+	// reset back to 100k as the OLEDDisplay initialization is
+	// modifying the I2C speed to 400k, which overwhelms some of the
+	// sensors.
 
-	
-		Wire.setClock(100000);
-		//Wire.setClockStretchLimit(150000);
+	Wire.setClock(100000);
+	//Wire.setClockStretchLimit(150000);
 }
 
 /*****************************************************************
@@ -5847,8 +5914,14 @@ static void logEnabledAPIs()
 
 static void logEnabledDisplays()
 {
-	if (cfg::has_ssd1306){debug_outln_info(F("Show on OLED..."));}
-	if (cfg::has_sh1106){debug_outln_info(F("Show on OLED..."));}
+	if (cfg::has_ssd1306)
+	{
+		debug_outln_info(F("Show on OLED..."));
+	}
+	if (cfg::has_sh1106)
+	{
+		debug_outln_info(F("Show on OLED..."));
+	}
 }
 
 static void setupNetworkTime()
@@ -5912,34 +5985,16 @@ static unsigned long sendDataToOptionalApisNBIoT(const String &data)
 
 	Debug.println(data);
 
-	if (cfg::send2madavi)
-	{
-		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("madavi.de: "));
-		sum_send_time += sendDataNBIoT(LoggerMadavi, data, 0, HOST_MADAVI, URL_MADAVI, cfg::ssl_madavi);
-	}
-
-	if (cfg::send2custom)
+if (cfg::nbiot_format == 0)
 	{
 		String data_to_send = data;
 		data_to_send.remove(0, 1);
-		String data_4_custom(F("{\"mobileairid\": \""));
+		String data_4_custom(F("{\"nebuleairid\": \""));
 		data_4_custom += esp_chipid;
 		data_4_custom += "\", ";
 		data_4_custom += data_to_send;
-		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("aircarto api NBIoT: "));
-		sum_send_time += sendDataNBIoT(LoggerCustom, data_4_custom, 0, cfg::host_custom, cfg::url_custom, cfg::ssl_custom);
-	}
-
-	if (cfg::send2custom2)
-	{
-		String data_to_send = data;
-		data_to_send.remove(0, 1);
-		String data_4_custom(F("{\"mobileairid\": \""));
-		data_4_custom += esp_chipid;
-		data_4_custom += "\", ";
-		data_4_custom += data_to_send;
-		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("atmosud api NBIoT: "));
-		sum_send_time += sendDataNBIoT(LoggerCustom2, data_4_custom, 0, cfg::host_custom2, cfg::url_custom2, cfg::ssl_custom2);
+		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("aircarto api NBIoT json: "));
+		sum_send_time += sendDataNBIoT(LoggerNBIoTJson, data_4_custom, 0, cfg::host_nbiot_json, cfg::url_nbiot_json, cfg::ssl_nbiot_json);
 	}
 
 	return sum_send_time;
@@ -5949,32 +6004,18 @@ static unsigned long sendDataToOptionalApisNBIoTBytes(const uint8_t *data, size_
 {
 	unsigned long sum_send_time = 0;
 
-	if (cfg::send2custom)
+	if (cfg::nbiot_format == 1)
 	{
-		String headerstr22 = "2:SignalNBIoT:" + String(last_signal_strength_nbiot);
+		String headerstr02 = "2:SignalNBIoT:" + String(last_signal_strength_nbiot);
 
-		if (lte.setHeader(2, headerstr22.c_str()) == LTE_SHIELD_SUCCESS)
+		if (lte.setHeader(0, headerstr02.c_str()) == LTE_SHIELD_SUCCESS)
 		{
-			Debug.print("Header 2/2: ");
-			Debug.println(headerstr22);
+			Debug.print("Header 0/2: ");
+			Debug.println(headerstr02);
 		}
 
-		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("aircarto api NBIoT: "));
-		sum_send_time += sendDataNBIoTBytes(LoggerCustom, data, size, 0, cfg::host_custom, cfg::url_custom, cfg::ssl_custom);
-	}
-
-	if (cfg::send2custom2)
-	{
-		String headerstr32 = "2:SignalNBIoT:" + String(last_signal_strength_nbiot);
-
-		if (lte.setHeader(3, headerstr32.c_str()) == LTE_SHIELD_SUCCESS)
-		{
-			Debug.print("Header 3/2: ");
-			Debug.println(headerstr32);
-		}
-
-		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("atmosud api NBIoT: "));
-		sum_send_time += sendDataNBIoTBytes(LoggerCustom2, data, size, 0, cfg::host_custom2, cfg::url_custom2, cfg::ssl_custom2);
+		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("aircarto api NBIoT byte: "));
+		sum_send_time += sendDataNBIoTBytes(LoggerNBIoTByte, data, size, 0, cfg::host_nbiot_byte, cfg::url_nbiot_byte, cfg::ssl_nbiot_byte);
 	}
 
 	return sum_send_time;
@@ -6014,7 +6055,6 @@ uint8_t datalora[LEN_PAYLOAD_LORA] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
 // 0xff, 0x80, temp -128
 // 0xff, rh -1
 // 0xff, 0xff, p -1
-
 
 const unsigned TX_INTERVAL_MOBILE = (cfg::sending_intervall_ms_mobile) / 1000;
 const unsigned TX_INTERVAL_STATIC = (cfg::sending_intervall_ms_static) / 1000;
@@ -6191,15 +6231,14 @@ void onEvent(ev_t ev)
 
 		// Schedule next transmission
 
-	if(potValue < 2926)
-	{
-		os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL_MOBILE), do_send);
-
-	}else
-	{
-		os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL_STATIC), do_send);
-
-	}
+		if (potValue < 2926)
+		{
+			os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL_MOBILE), do_send);
+		}
+		else
+		{
+			os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL_STATIC), do_send);
+		}
 		Debug.println(F("Next transmission scheduled"));
 		break;
 	case EV_LOST_TSYNC:
@@ -6264,17 +6303,17 @@ static void prepareTxFrameLoRa()
 		byte temp_byte[2];
 	} u1;
 
-    union float_2_byte
-    {
-        float temp_float;
-        byte temp_byte[4];
-    } u2;
+	union float_2_byte
+	{
+		float temp_float;
+		byte temp_byte[4];
+	} u2;
 
 	union double_2_byte
-    {
-        double temp_double;
-        byte temp_byte[8];
-    } u3;
+	{
+		double temp_double;
+		byte temp_byte[8];
+	} u3;
 
 	// union uint16_2_byte
 	// {
@@ -6319,7 +6358,6 @@ static void prepareTxFrameLoRa()
 	}
 
 	//x10 to get 1 decimal for PM
-
 
 	// datalora[1] = u1.temp_byte[1];
 	// datalora[2] = u1.temp_byte[0];
@@ -6402,25 +6440,25 @@ static void prepareTxFrameLoRa()
 
 	u3.temp_double = GPSdata.latitude;
 
-    datalora[22] = u3.temp_byte[0];
-    datalora[23] = u3.temp_byte[1];
-    datalora[24] = u3.temp_byte[2];
-    datalora[25] = u3.temp_byte[3];
+	datalora[22] = u3.temp_byte[0];
+	datalora[23] = u3.temp_byte[1];
+	datalora[24] = u3.temp_byte[2];
+	datalora[25] = u3.temp_byte[3];
 	datalora[26] = u3.temp_byte[4];
-    datalora[27] = u3.temp_byte[5];
-    datalora[28] = u3.temp_byte[6];
-    datalora[29] = u3.temp_byte[7];
+	datalora[27] = u3.temp_byte[5];
+	datalora[28] = u3.temp_byte[6];
+	datalora[29] = u3.temp_byte[7];
 
-    u3.temp_double = GPSdata.longitude;
+	u3.temp_double = GPSdata.longitude;
 
-    datalora[30] = u3.temp_byte[0];
-    datalora[31] = u3.temp_byte[1];
-    datalora[32] = u3.temp_byte[2];
-    datalora[33] = u3.temp_byte[3];
+	datalora[30] = u3.temp_byte[0];
+	datalora[31] = u3.temp_byte[1];
+	datalora[32] = u3.temp_byte[2];
+	datalora[33] = u3.temp_byte[3];
 	datalora[34] = u3.temp_byte[4];
-    datalora[35] = u3.temp_byte[5];
-    datalora[36] = u3.temp_byte[6];
-    datalora[37] = u3.temp_byte[7];
+	datalora[35] = u3.temp_byte[5];
+	datalora[36] = u3.temp_byte[6];
+	datalora[37] = u3.temp_byte[7];
 
 	u1.temp_int = (int16_t)round(GPSdata.altitude);
 
@@ -6482,10 +6520,10 @@ static void prepareTxFrameNBIoT()
 	} u2;
 
 	union double_2_byte
-    {
-        double temp_double;
-        byte temp_byte[8];
-    } u3;
+	{
+		double temp_double;
+		byte temp_byte[8];
+	} u3;
 
 	// union uint16_2_byte
 	// {
@@ -6531,10 +6569,8 @@ static void prepareTxFrameNBIoT()
 
 	//x10 to get 1 decimal for PM
 
-
 	// datanbiot[1] = u1.temp_byte[1];
 	// datanbiot[2] = u1.temp_byte[0];
-
 
 	// datanbiot[3] = u1.temp_byte[1];
 	// datanbiot[4] = u1.temp_byte[0];
@@ -6614,37 +6650,37 @@ static void prepareTxFrameNBIoT()
 
 	u3.temp_double = GPSdata.latitude;
 
-    datanbiot[22] = u3.temp_byte[0];
-    datanbiot[23] = u3.temp_byte[1];
-    datanbiot[24] = u3.temp_byte[2];
-    datanbiot[25] = u3.temp_byte[3];
-    datanbiot[26] = u3.temp_byte[4];
-    datanbiot[27] = u3.temp_byte[5];
-    datanbiot[28] = u3.temp_byte[6];
-    datanbiot[29] = u3.temp_byte[7];
+	datanbiot[22] = u3.temp_byte[0];
+	datanbiot[23] = u3.temp_byte[1];
+	datanbiot[24] = u3.temp_byte[2];
+	datanbiot[25] = u3.temp_byte[3];
+	datanbiot[26] = u3.temp_byte[4];
+	datanbiot[27] = u3.temp_byte[5];
+	datanbiot[28] = u3.temp_byte[6];
+	datanbiot[29] = u3.temp_byte[7];
 
-    u3.temp_double = GPSdata.longitude;
+	u3.temp_double = GPSdata.longitude;
 
-    datanbiot[30] = u3.temp_byte[0];
-    datanbiot[31] = u3.temp_byte[1];
-    datanbiot[32] = u3.temp_byte[2];
-    datanbiot[33] = u3.temp_byte[3];
-    datanbiot[34] = u3.temp_byte[4];
-    datanbiot[35] = u3.temp_byte[5];
-    datanbiot[36] = u3.temp_byte[6];
-    datanbiot[37] = u3.temp_byte[7];
+	datanbiot[30] = u3.temp_byte[0];
+	datanbiot[31] = u3.temp_byte[1];
+	datanbiot[32] = u3.temp_byte[2];
+	datanbiot[33] = u3.temp_byte[3];
+	datanbiot[34] = u3.temp_byte[4];
+	datanbiot[35] = u3.temp_byte[5];
+	datanbiot[36] = u3.temp_byte[6];
+	datanbiot[37] = u3.temp_byte[7];
 
-    u1.temp_int = (int16_t)round(GPSdata.altitude);
+	u1.temp_int = (int16_t)round(GPSdata.altitude);
 
-    datanbiot[38] = u1.temp_byte[1];
-    datanbiot[39] = u1.temp_byte[0];
+	datanbiot[38] = u1.temp_byte[1];
+	datanbiot[39] = u1.temp_byte[0];
 
-    datanbiot[40] = GPSdata.year;
-    datanbiot[41] = GPSdata.month;
-    datanbiot[42] = GPSdata.day;
-    datanbiot[43] = GPSdata.hour;
-    datanbiot[44] = GPSdata.minute;
-    datanbiot[45] = GPSdata.second;
+	datanbiot[40] = GPSdata.year;
+	datanbiot[41] = GPSdata.month;
+	datanbiot[42] = GPSdata.day;
+	datanbiot[43] = GPSdata.hour;
+	datanbiot[44] = GPSdata.minute;
+	datanbiot[45] = GPSdata.second;
 
 	Debug.printf("HEX values:\n");
 	for (int i = 0; i < LEN_PAYLOAD_NBIOT - 1; i++)
@@ -6681,10 +6717,10 @@ static void prepareTxFrameWiFi()
 	} u2;
 
 	union double_2_byte
-    {
-        double temp_double;
-        byte temp_byte[8];
-    } u3;
+	{
+		double temp_double;
+		byte temp_byte[8];
+	} u3;
 
 	// union uint16_2_byte
 	// {
@@ -6730,10 +6766,8 @@ static void prepareTxFrameWiFi()
 
 	//x10 to get 1 decimal for PM
 
-
 	// datanbiot[1] = u1.temp_byte[1];
 	// datanbiot[2] = u1.temp_byte[0];
-
 
 	// datanbiot[3] = u1.temp_byte[1];
 	// datanbiot[4] = u1.temp_byte[0];
@@ -6813,37 +6847,37 @@ static void prepareTxFrameWiFi()
 
 	u3.temp_double = GPSdata.latitude;
 
-    datanbiot[22] = u3.temp_byte[0];
-    datanbiot[23] = u3.temp_byte[1];
-    datanbiot[24] = u3.temp_byte[2];
-    datanbiot[25] = u3.temp_byte[3];
-    datanbiot[26] = u3.temp_byte[4];
-    datanbiot[27] = u3.temp_byte[5];
-    datanbiot[28] = u3.temp_byte[6];
-    datanbiot[29] = u3.temp_byte[7];
+	datanbiot[22] = u3.temp_byte[0];
+	datanbiot[23] = u3.temp_byte[1];
+	datanbiot[24] = u3.temp_byte[2];
+	datanbiot[25] = u3.temp_byte[3];
+	datanbiot[26] = u3.temp_byte[4];
+	datanbiot[27] = u3.temp_byte[5];
+	datanbiot[28] = u3.temp_byte[6];
+	datanbiot[29] = u3.temp_byte[7];
 
-    u3.temp_double = GPSdata.longitude;
+	u3.temp_double = GPSdata.longitude;
 
-    datanbiot[30] = u3.temp_byte[0];
-    datanbiot[31] = u3.temp_byte[1];
-    datanbiot[32] = u3.temp_byte[2];
-    datanbiot[33] = u3.temp_byte[3];
-    datanbiot[34] = u3.temp_byte[4];
-    datanbiot[35] = u3.temp_byte[5];
-    datanbiot[36] = u3.temp_byte[6];
-    datanbiot[37] = u3.temp_byte[7];
+	datanbiot[30] = u3.temp_byte[0];
+	datanbiot[31] = u3.temp_byte[1];
+	datanbiot[32] = u3.temp_byte[2];
+	datanbiot[33] = u3.temp_byte[3];
+	datanbiot[34] = u3.temp_byte[4];
+	datanbiot[35] = u3.temp_byte[5];
+	datanbiot[36] = u3.temp_byte[6];
+	datanbiot[37] = u3.temp_byte[7];
 
-    u1.temp_int = (int16_t)round(GPSdata.altitude);
+	u1.temp_int = (int16_t)round(GPSdata.altitude);
 
-    datanbiot[38] = u1.temp_byte[1];
-    datanbiot[39] = u1.temp_byte[0];
+	datanbiot[38] = u1.temp_byte[1];
+	datanbiot[39] = u1.temp_byte[0];
 
-    datanbiot[40] = GPSdata.year;
-    datanbiot[41] = GPSdata.month;
-    datanbiot[42] = GPSdata.day;
-    datanbiot[43] = GPSdata.hour;
-    datanbiot[44] = GPSdata.minute;
-    datanbiot[45] = GPSdata.second;
+	datanbiot[40] = GPSdata.year;
+	datanbiot[41] = GPSdata.month;
+	datanbiot[42] = GPSdata.day;
+	datanbiot[43] = GPSdata.hour;
+	datanbiot[44] = GPSdata.minute;
+	datanbiot[45] = GPSdata.second;
 
 	Debug.printf("HEX values:\n");
 	for (int i = 0; i < LEN_PAYLOAD_NBIOT - 1; i++)
@@ -6855,7 +6889,6 @@ static void prepareTxFrameWiFi()
 		}
 	}
 }
-
 
 /*****************************************************************
  * Transmit                                                    *
@@ -6970,14 +7003,12 @@ static void display_transmit(struct RGB displayColor)
 	drawpicture(empty);
 }
 
-
 /*****************************************************************
  * Check stack                                                    *
  *****************************************************************/
 void *StackPtrAtStart;
 void *StackPtrEnd;
 UBaseType_t watermarkStart;
-
 
 /*****************************************************************
  * SD card                                                  *
@@ -7188,7 +7219,6 @@ static void testFileIO(fs::FS &fs, const char *path)
 	file.close();
 }
 
-
 /*****************************************************************
  * The Setup                                                     *
  *****************************************************************/
@@ -7207,40 +7237,40 @@ void setup()
 	Debug.println(F("Starting"));
 
 	potValue = analogRead(POT_PIN); //Must happen before the wifi starts
-  	Debug.print("Potentiometer: ");
+	Debug.print("Potentiometer: ");
 	Debug.println(potValue);
 
-        switch (potValue)
-        {
-        case 0 ... 585:
-			measure_type_string = "Marche à pieds";
-			measure_type_nb = 0;
-            break;
-        case 586 ... 1170:
-			measure_type_string = "Vélo";
-			measure_type_nb = 1;
-            break;
-		case 1171 ... 1775:
-			measure_type_string = "Moto/Scooter";
-			measure_type_nb = 2;
-            break;
-        case 1776 ... 2340:
-			measure_type_string = "Voiture";
-			measure_type_nb = 3;
-            break;
-        case 2341 ... 2925:
-			measure_type_string = "Transport en commun";
-			measure_type_nb = 4;
-            break;
-        case 2926 ... 3510:
-			measure_type_string = "Fixe intérieur";
-			measure_type_nb = 5;
-            break;
-        case 3511 ... 4095:
-			measure_type_string = "Fixe extérieur";
-			measure_type_nb = 6;
-            break;
-		}
+	switch (potValue)
+	{
+	case 0 ... 585:
+		measure_type_string = "Marche à pieds";
+		measure_type_nb = 0;
+		break;
+	case 586 ... 1170:
+		measure_type_string = "Vélo";
+		measure_type_nb = 1;
+		break;
+	case 1171 ... 1775:
+		measure_type_string = "Moto/Scooter";
+		measure_type_nb = 2;
+		break;
+	case 1776 ... 2340:
+		measure_type_string = "Voiture";
+		measure_type_nb = 3;
+		break;
+	case 2341 ... 2925:
+		measure_type_string = "Transport en commun";
+		measure_type_nb = 4;
+		break;
+	case 2926 ... 3510:
+		measure_type_string = "Fixe intérieur";
+		measure_type_nb = 5;
+		break;
+	case 3511 ... 4095:
+		measure_type_string = "Fixe extérieur";
+		measure_type_nb = 6;
+		break;
+	}
 
 	Debug.println(measure_type_string);
 	Debug.printf("\r\n\r\nAddress of Stackpointer near start is:  %p \r\n", (void *)StackPtrAtStart);
@@ -7271,14 +7301,14 @@ void setup()
 
 	if (cfg::enveano2_read)
 	{
-		serialNO2.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, NO2_SERIAL_RX, NO2_SERIAL_TX); 
+		serialNO2.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, NO2_SERIAL_RX, NO2_SERIAL_TX);
 		Debug.println("Envea Cairsens NO2... serialN02 9600 8N1 SoftwareSerial");
 		serialNO2.setTimeout((4 * 12 * 1000) / 9600);
 	}
 
 	if (cfg::has_gps)
 	{
-		serialGPS.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, GPS_SERIAL_RX, GPS_SERIAL_TX); 
+		serialGPS.begin(9600, EspSoftwareSerial::SWSERIAL_8N1, GPS_SERIAL_RX, GPS_SERIAL_TX);
 		Debug.println("GPS... serialGPS 9600 8N1 SoftwareSerial");
 		serialGPS.setTimeout((4 * 12 * 1000) / 9600);
 	}
@@ -7289,6 +7319,8 @@ void setup()
 	{
 		//serialNBIOT.setTimeout(5000); //to test ?
 		//IL VA FALLOIR TIMEOUTER ICI
+
+		//AJOUTER LE MESSAGE DE TEST DE DEMARRAGE NBIOT???
 
 		if (lte.begin(serialNBIOT, 9600, SERIAL_8N1, NBIOT_SERIAL_RX, NBIOT_SERIAL_TX))
 		{
@@ -7394,26 +7426,7 @@ void setup()
 	powerOnTestSensors();
 	logEnabledDisplays();
 
-
 	delay(50);
-
-	starttime = millis(); // store the start time
-	time_point_device_start_ms = starttime;
-
-	if (cfg::npm_read)
-	{
-		starttime_NPM = starttime;
-	}
-
-	if (cfg::ccs811_read)
-	{
-		starttime_CCS811 = starttime;
-	}
-
-	if (cfg::enveano2_read)
-	{
-		starttime_Cairsens = starttime;
-	}
 
 	if (cfg::has_nbiot)
 	{
@@ -7438,22 +7451,24 @@ void setup()
 		Debug.println("RSSI: " + String(lte.rssi()));
 		Debug.println();
 
-		if (cfg::send2dusti)
-		{
-			Debug.println("Set profile API Sensor.Community");
 
-			if (lte.setHost(0, HOST_SENSORCOMMUNITY) == LTE_SHIELD_SUCCESS)
+
+if (cfg::nbiot_format == 0)
+		{
+			Debug.println("Set profile API Aircarto");
+
+			if (lte.setHost(0, cfg::host_nbiot_json) == LTE_SHIELD_SUCCESS)
 			{
 				Debug.print("Host 0: ");
-				Debug.println(HOST_SENSORCOMMUNITY);
+				Debug.println(cfg::host_nbiot_json);
 			}
 
-			if (cfg::ssl_dusti)
+			if (cfg::ssl_nbiot_json)
 			{
 
-				if (lte.setCAroot(dst_root_ca_x3, "certSC") == LTE_SHIELD_SUCCESS)
+				if (lte.setCAroot(ca_aircarto, "certAircarto") == LTE_SHIELD_SUCCESS)
 				{
-					Debug.println("CA SC set up!");
+					Debug.println("CA AirCarto set up!");
 				}
 
 				if (lte.setSecProfile1(0) == LTE_SHIELD_SUCCESS)
@@ -7461,21 +7476,21 @@ void setup()
 					Debug.println("Set security profile 1");
 				}
 
-				if (lte.setSecProfile2(0, "certSC") == LTE_SHIELD_SUCCESS)
+				if (lte.setSecProfile2(0, "certAircarto") == LTE_SHIELD_SUCCESS)
 				{
 					Debug.println("Set security profile 2");
 				}
 
 				if (lte.setSSL(0, 0) == LTE_SHIELD_SUCCESS)
 				{
-					Debug.println("SSL API Sensor.Community");
+					Debug.println("SSL API AirCarto");
 				}
 			}
-
-			if (lte.setPort(0, loggerConfigs[LoggerSensorCommunity].destport) == LTE_SHIELD_SUCCESS)
+			
+			if (lte.setPort(0, loggerConfigs[LoggerNBIoTJson].destport) == LTE_SHIELD_SUCCESS)
 			{
 				Debug.print("Port 0: ");
-				Debug.println(loggerConfigs[LoggerSensorCommunity].destport);
+				Debug.println(loggerConfigs[LoggerNBIoTJson].destport);
 			}
 
 			if (lte.setHeader(0, "0:Content-Type:application/json") == LTE_SHIELD_SUCCESS)
@@ -7484,103 +7499,19 @@ void setup()
 				Debug.println("0:Content-Type:application/json");
 			}
 
-			String headerstr01 = "1:X-Sensor:" + String(F(SENSOR_BASENAME)) + esp_chipid;
-
-			if (lte.setHeader(0, headerstr01.c_str()) == LTE_SHIELD_SUCCESS)
-			{
-				Debug.print("Header 0/1: ");
-				Debug.println(headerstr01);
-			}
 		}
 
-		if (cfg::send2madavi)
-		{
-			Debug.println("Set profile API Madavi");
-
-			if (lte.setHost(1, HOST_MADAVI) == LTE_SHIELD_SUCCESS)
-			{
-				Debug.print("Host 1: ");
-				Debug.println(HOST_MADAVI);
-			}
-
-			if (cfg::ssl_madavi)
-			{
-				// if (lte.uploadCA(String(dst_root_ca_x3), "dst_root_ca_x3") == LTE_SHIELD_SUCCESS)
-				// {
-				// 	Debug.println("CA Madavi uploaded!");
-				// }
-
-				// if (lte.setCAroot(dst_root_ca_x3, "certMadavi") == LTE_SHIELD_SUCCESS)
-				// {
-				// 	Debug.println("CA Madavi set up!");
-				// }
-
-				// if (lte.setCArootBytes(dst_root_ca_x3_bytes, sizeof(dst_root_ca_x3_bytes), "certMadavi") == LTE_SHIELD_SUCCESS)
-				// {
-				// 	Debug.println("CA Madavi set up!");
-				// }
-
-				if (lte.uploadCABytes(dst_root_ca_x3_bytes, sizeof(dst_root_ca_x3_bytes), "dst_root_ca_x3") == LTE_SHIELD_SUCCESS)
-				{
-					Debug.println("CA Madavi uploaded!");
-				}
-
-				delay(2000);
-				
-				if (lte.setCAroot("certMadavi", "dst_root_ca_x3.cert") == LTE_SHIELD_SUCCESS)
-				{
-					Debug.println("CA Madavi set up!");
-				}
-
-				if (lte.setSecProfile1(1) == LTE_SHIELD_SUCCESS)
-				{
-					Debug.println("Set security profile 1");
-				}
-
-				if (lte.setSecProfile2(1, "certMadavi") == LTE_SHIELD_SUCCESS)
-				{
-					Debug.println("Set security profile 2");
-				}
-
-				if (lte.setSSL(1, 1) == LTE_SHIELD_SUCCESS)
-				{
-					Debug.println("SSL API Madavi");
-				}
-			}
-
-			if (lte.setPort(1, loggerConfigs[LoggerMadavi].destport) == LTE_SHIELD_SUCCESS)
-			{
-				Debug.print("Port 1: ");
-				Debug.println(loggerConfigs[LoggerMadavi].destport);
-			}
-
-			if (lte.setHeader(1, "0:Content-Type:application/json") == LTE_SHIELD_SUCCESS)
-			{
-				Debug.print("Header 1/0: ");
-				Debug.println("0:Content-Type:application/json");
-			}
-
-			String headerstr11 = "1:X-Sensor:" + String(F(SENSOR_BASENAME)) + esp_chipid;
-
-			if (lte.setHeader(1, headerstr11.c_str()) == LTE_SHIELD_SUCCESS)
-			{
-				Debug.print("Header 1/1: ");
-				Debug.println(headerstr11);
-			}
-		}
-
-		if (cfg::send2custom)
+		if (cfg::nbiot_format == 1)
 		{
 			Debug.println("Set profile API Aircarto");
 
-			if (lte.setHost(2, cfg::host_custom) == LTE_SHIELD_SUCCESS)
-			//if (lte.setHost(2, "webhook.site") == LTE_SHIELD_SUCCESS)
+			if (lte.setHost(0, cfg::host_nbiot_byte) == LTE_SHIELD_SUCCESS)
 			{
-				Debug.print("Host 2: ");
-				Debug.println(cfg::host_custom);
+				Debug.print("Host 0: ");
+				Debug.println(cfg::host_nbiot_byte);
 			}
 
-			if (cfg::ssl_custom)
+			if (cfg::ssl_nbiot_byte)
 			{
 
 				if (lte.setCAroot(ca_aircarto, "certAircarto") == LTE_SHIELD_SUCCESS)
@@ -7588,129 +7519,41 @@ void setup()
 					Debug.println("CA AirCarto set up!");
 				}
 
-				if (lte.setSecProfile1(2) == LTE_SHIELD_SUCCESS)
+				if (lte.setSecProfile1(0) == LTE_SHIELD_SUCCESS)
 				{
 					Debug.println("Set security profile 1");
 				}
 
-				if (lte.setSecProfile2(2, "certAircarto") == LTE_SHIELD_SUCCESS)
+				if (lte.setSecProfile2(0, "certAircarto") == LTE_SHIELD_SUCCESS)
 				{
 					Debug.println("Set security profile 2");
 				}
 
-				if (lte.setSSL(2, 2) == LTE_SHIELD_SUCCESS)
+				if (lte.setSSL(0, 0) == LTE_SHIELD_SUCCESS)
 				{
 					Debug.println("SSL API AirCarto");
 				}
 			}
 			
-			if (lte.setPort(2, loggerConfigs[LoggerCustom].destport) == LTE_SHIELD_SUCCESS)
+			if (lte.setPort(0, loggerConfigs[LoggerNBIoTByte].destport) == LTE_SHIELD_SUCCESS)
 			{
-				Debug.print("Port 2: ");
-				Debug.println(loggerConfigs[LoggerCustom].destport);
+				Debug.print("Port 0: ");
+				Debug.println(loggerConfigs[LoggerNBIoTByte].destport);
 			}
 
-			if (cfg::nbiot_format == 0)
-			{
-				if (lte.setHeader(2, "0:Content-Type:application/json") == LTE_SHIELD_SUCCESS)
+				if (lte.setHeader(0, "0:Content-Type:application/octet-stream") == LTE_SHIELD_SUCCESS)
 				{
-					Debug.print("Header 2/0: ");
-					Debug.println("0:Content-Type:application/json");
-				}
-			}
-
-			if (cfg::nbiot_format == 1)
-			{
-				if (lte.setHeader(2, "0:Content-Type:application/octet-stream") == LTE_SHIELD_SUCCESS)
-				{
-					Debug.print("Header 2/0: ");
+					Debug.print("Header 0/0: ");
 					Debug.println("0:Content-Type:application/octet-stream");
 				}
 
-				String headerstr21 = "1:Sensor:mobileair-" + esp_chipid;
+				String headerstr01 = "1:SensorID:" + esp_chipid;
 
-				if (lte.setHeader(2, headerstr21.c_str()) == LTE_SHIELD_SUCCESS)
+				if (lte.setHeader(0, headerstr01.c_str()) == LTE_SHIELD_SUCCESS)
 				{
-					Debug.print("Header 2/1: ");
-					Debug.println(headerstr21);
+					Debug.print("Header 0/1: ");
+					Debug.println(headerstr01);
 				}
-				// if (lte.setHeader(2, "3:Content-Transfer-Encoding:8BIT") == LTE_SHIELD_SUCCESS)
-				// {
-				// 	Debug.print("Header 2/3: ");
-				// 	Debug.println("3:Content-Transfer-Encoding:base64"); //BINARY  Base64
-				// }
-			}
-		}
-
-		if (cfg::send2custom2)
-		{
-			Debug.println("Set profile API AtmoSud");
-			if (lte.setHost(3, cfg::host_custom2) == LTE_SHIELD_SUCCESS)
-			{
-				Debug.print("Host 3: ");
-				Debug.println(cfg::host_custom2);
-			}
-
-			if (cfg::ssl_custom2)
-			{
-
-				if (lte.setCAroot(ca_atmo, "certAtmosud") == LTE_SHIELD_SUCCESS)
-				{
-					Debug.println("CA AtmoSud set up!");
-				}
-
-				if (lte.setSecProfile1(3) == LTE_SHIELD_SUCCESS)
-				{
-					Debug.println("Set security profile 1");
-				}
-
-				if (lte.setSecProfile2(3, "certAircarto") == LTE_SHIELD_SUCCESS)
-				{
-					Debug.println("Set security profile 2");
-				}
-
-				if (lte.setSSL(3, 3) == LTE_SHIELD_SUCCESS)
-				{
-					Debug.println("SSL API AtmoSud");
-				}
-			}
-
-			if (lte.setPort(3, loggerConfigs[LoggerCustom2].destport) == LTE_SHIELD_SUCCESS)
-			{
-				Debug.print("Port 3: ");
-				Debug.println(loggerConfigs[LoggerCustom2].destport);
-			}
-
-			if (cfg::nbiot_format == 0)
-			{
-				if (lte.setHeader(3, "0:Content-Type:application/json") == LTE_SHIELD_SUCCESS)
-				{
-					Debug.print("Header 2/0: ");
-					Debug.println("0:Content-Type:application/json");
-				}
-			}
-
-			if (cfg::nbiot_format == 1)
-			{
-				if (lte.setHeader(3, "0:Content-Type:application/octet-stream") == LTE_SHIELD_SUCCESS)
-				{
-					Debug.print("Header 3/0: ");
-					Debug.println("0:Content-Type:application/octet-stream");
-				}
-
-				String headerstr31 = "1:Sensor:mobileair-" + esp_chipid;
-
-				if (lte.setHeader(3, headerstr31.c_str()) == LTE_SHIELD_SUCCESS)
-				{
-					Debug.print("Header 3/1: ");
-					Debug.println(headerstr31);
-				}
-				// if (lte.setHeader(3, "2:Content-Transfer-Encoding:8BIT") == LTE_SHIELD_SUCCESS)
-				// {
-				// 	Debug.print("Header 3/2: ");
-				// 	Debug.println("2:Content-Transfer-Encoding:8BIT"); //BINARY
-				// }
-			}
 		}
 
 		confignbiot[0] = cfg::npm_read;
@@ -7718,17 +7561,17 @@ void setup()
 		confignbiot[2] = cfg::ccs811_read;
 		confignbiot[3] = cfg::enveano2_read;
 		confignbiot[4] = cfg::rgpd;
-		confignbiot[5] = cfg::has_sdcard;  //OUBIEN has gps && sd ???
+		confignbiot[5] = cfg::has_sdcard; //OUBIEN has gps && sd ???
 		confignbiot[6] = cfg::has_lora;
 		confignbiot[7] = cfg::has_wifi;
 		//si connection manquée => false
-
-		
 
 		Debug.print("Configuration:");
 		Debug.println(booltobyte(confignbiot));
 		datanbiot[0] = booltobyte(confignbiot);
 	}
+
+	//AJOUTER LE SUPPORT DES BYTES EN WIFI
 
 	if (cfg::has_lora && lorachip)
 	{
@@ -7793,7 +7636,6 @@ void setup()
 	Debug.println(booltobyte(configlorawan));
 	datalora[0] = booltobyte(configlorawan);
 
-
 	if (cfg::has_gps)
 	{
 		while (!GPSdata.checked && (millis() - time_point_device_start_ms < 300000))
@@ -7807,8 +7649,9 @@ void setup()
 				if (gps.encode(serialGPS.read()))
 				{
 					Debug.println(F("First GPS coordinates"));
-					GPSdata = getGPSdata();
-					if (GPSdata.checked){
+					GPSdata = getGPSdata(true);
+					if (GPSdata.checked)
+					{
 						Debug.println(F("GPS coordinates found!"));
 						break;
 					}
@@ -7823,10 +7666,10 @@ void setup()
 			}
 		}
 
-		if(!GPSdata.checked)
+		if (!GPSdata.checked)
 		{
-				Debug.println(F("GPS issue!"));
-				GPSdata = {0, 0, 0, 0, 0, 0, -1.0, -1.0, -1.0, false};
+			Debug.println(F("GPS issue!"));
+			GPSdata = {0, 0, 0, 0, 0, 0, -1.0, -1.0, -1.0, false};
 		}
 
 		if (GPSdata.checked && cfg::has_sdcard && sdcard_found)
@@ -7839,7 +7682,8 @@ void setup()
 			appendFile(SD, file_name.c_str(), "Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude;Type\n");
 			Debug.println("Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude;Type\n");
 			file_created = true;
-		}else
+		}
+		else
 		{
 			Debug.println("Can't create file!");
 		}
@@ -7848,7 +7692,23 @@ void setup()
 	// newGPSdata = false;
 
 	Debug.printf("End of void setup()\n");
-	starttime_waiter = millis();
+	starttime = starttime_waiter = millis();
+	time_point_device_start_ms = starttime;
+
+	if (cfg::npm_read)
+	{
+		starttime_NPM = starttime;
+	}
+
+	if (cfg::ccs811_read)
+	{
+		starttime_CCS811 = starttime;
+	}
+
+	if (cfg::enveano2_read)
+	{
+		starttime_Cairsens = starttime;
+	}
 }
 
 void loop()
@@ -7860,14 +7720,14 @@ void loop()
 	act_micro = micros();
 	act_milli = millis();
 
-	if(potValue < 2926)
+	if (potValue < 2926)
 	{
 		send_now = msSince(starttime) > cfg::sending_intervall_ms_mobile;
-	}else
+	}
+	else
 	{
 		send_now = msSince(starttime) > cfg::sending_intervall_ms_static;
 	}
-
 
 	//REVOIR ICI SYN NTP!!!!
 
@@ -7965,6 +7825,31 @@ void loop()
 	// }
 
 	sample_count++;
+
+	if (cfg::has_gps)
+	{
+
+		unsigned long gps_try = millis();
+		while (serialGPS.available() > 0)
+		{
+			if (gps.encode(serialGPS.read()))
+			{
+				//  Debug.println(F("Get current GPS"));
+				GPSdata = getGPSdata(false);
+				if (GPSdata.checked)
+				{
+					// Debug.println(F("GPS coordinates found!"));
+				}
+				else
+				{
+					Debug.println(F("GPS issue!"));
+					GPSdata = {0, 0, 0, 0, 0, 0, -1.0, -1.0, -1.0, false};
+				}
+				break; //sans break?
+			}
+		}
+	}
+
 	if (last_micro != 0)
 	{
 		unsigned long diff_micro = act_micro - last_micro;
@@ -7974,23 +7859,22 @@ void loop()
 
 	if (cfg::npm_read)
 	{
-        switch (measure_type_nb)
-        {
-        case 0 ... 4:
-		if (send_now)
+		switch (measure_type_nb)
 		{
-			starttime_NPM = act_milli;
-			fetchSensorNPM_10sec(result_NPM);
-		}
-            break;
-        case 5 ... 6:
-		if ((msSince(starttime_NPM) > SAMPLETIME_NPM_MS_1MIN && npm_val_count == 0) || send_now)
-		{
-			starttime_NPM = act_milli;
-			fetchSensorNPM_1min(result_NPM);
-		}
-            break;
-
+		case 0 ... 4:
+			if (send_now)
+			{
+				starttime_NPM = act_milli;
+				fetchSensorNPM_10sec(result_NPM);
+			}
+			break;
+		case 5 ... 6:
+			if ((msSince(starttime_NPM) > SAMPLETIME_NPM_MS_1MIN && npm_val_count == 0) || send_now)
+			{
+				starttime_NPM = act_milli;
+				fetchSensorNPM_1min(result_NPM);
+			}
+			break;
 		}
 	}
 
@@ -8003,7 +7887,6 @@ void loop()
 		}
 	}
 
-	//if (cfg::envean02_read && (!ccs811_init_failed))
 	if (cfg::enveano2_read)
 	{
 		if ((msSince(starttime_Cairsens) > SAMPLETIME_Cairsens_MS && no2_val_count < 11) || send_now)
@@ -8013,7 +7896,7 @@ void loop()
 		}
 	}
 
-	if ((msSince(last_display_millis_oled) > DISPLAY_UPDATE_INTERVAL_MS) && (cfg::has_ssd1306 || cfg::has_sh1106 ))
+	if ((msSince(last_display_millis_oled) > DISPLAY_UPDATE_INTERVAL_MS) && (cfg::has_ssd1306 || cfg::has_sh1106))
 	{
 		display_values_oled();
 		last_display_millis_oled = act_milli;
@@ -8031,79 +7914,61 @@ void loop()
 
 	if (send_now)
 	{
-	String timestringntp;
+		String timestringntp;
 
-if(cfg::has_wifi && WiFi.status() == WL_CONNECTED){
-	String timestringntp;
-	if(getLocalTime(&timeinfo)){
-		  Debug.println(&timeinfo, "NTP Time: %d %B %Y %H:%M:%SZ");
-			timestringntp += "20";
-			timestringntp += String(timeinfo.tm_year-100);
-			timestringntp += "-";
-			if (timeinfo.tm_mon + 1 < 10){timestringntp += "0";}
-			timestringntp += String(timeinfo.tm_mon + 1);
-			timestringntp += "-";
-			if (timeinfo.tm_mday < 10){timestringntp += "0";}
-			timestringntp += String(timeinfo.tm_mday);
-			timestringntp += "T";
-			if (timeinfo.tm_hour < 10){timestringntp += "0";}
-			timestringntp += String(timeinfo.tm_hour);
-			timestringntp += ":";
-			if (timeinfo.tm_min < 10){timestringntp += "0";}
-			timestringntp += String(timeinfo.tm_min);
-			timestringntp += ":";
-			if (timeinfo.tm_sec < 10){timestringntp += "0";}
-			timestringntp += String(timeinfo.tm_sec);
-			timestringntp += "Z";
-	}else
-	{
-		Debug.println(&timeinfo, "No NTP Time!");
-		timestringntp = "0000-00-00T00:00:00Z";
-	}
-}else
-	{
-		timestringntp = "0000-00-00T00:00:00Z";
-	}
-	
-	if (cfg::has_gps)
-	{
-		unsigned long gps_search = millis();
-
-        while (!GPSdata.checked && (millis() - gps_search < SAMPLETIME_GPS_MS + 1000))  //Wait 2s max to get current GPS
+		if (cfg::has_wifi && WiFi.status() == WL_CONNECTED)
 		{
-
-		unsigned long gps_try = millis();
-		while (serialGPS.available() > 0)
-		{
-			if (gps.encode(serialGPS.read()))
+			String timestringntp;
+			if (getLocalTime(&timeinfo))
 			{
-				Debug.println(F("Get current GPS"));
-				GPSdata = getGPSdata();
-				if (GPSdata.checked){
-                        Debug.println(F("GPS coordinates found!"));
-						break;
-                }
+				Debug.println(&timeinfo, "NTP Time: %d %B %Y %H:%M:%SZ");
+				timestringntp += "20";
+				timestringntp += String(timeinfo.tm_year - 100);
+				timestringntp += "-";
+				if (timeinfo.tm_mon + 1 < 10)
+				{
+					timestringntp += "0";
+				}
+				timestringntp += String(timeinfo.tm_mon + 1);
+				timestringntp += "-";
+				if (timeinfo.tm_mday < 10)
+				{
+					timestringntp += "0";
+				}
+				timestringntp += String(timeinfo.tm_mday);
+				timestringntp += "T";
+				if (timeinfo.tm_hour < 10)
+				{
+					timestringntp += "0";
+				}
+				timestringntp += String(timeinfo.tm_hour);
+				timestringntp += ":";
+				if (timeinfo.tm_min < 10)
+				{
+					timestringntp += "0";
+				}
+				timestringntp += String(timeinfo.tm_min);
+				timestringntp += ":";
+				if (timeinfo.tm_sec < 10)
+				{
+					timestringntp += "0";
+				}
+				timestringntp += String(timeinfo.tm_sec);
+				timestringntp += "Z";
+			}
+			else
+			{
+				Debug.println(&timeinfo, "No NTP Time!");
+				timestringntp = "0000-00-00T00:00:00Z";
 			}
 		}
-
-		if ((millis() - gps_try) > 5000 && gps.charsProcessed() < 10)
+		else
 		{
-			Debug.println(F("No GPS anymore"));
-			break;
+			timestringntp = "0000-00-00T00:00:00Z";
 		}
-
-		}
-
-		if(!GPSdata.checked)
-        {
-                Debug.println(F("GPS issue!"));
-                GPSdata = {0, 0, 0, 0, 0, 0, -1.0, -1.0, -1.0, false};
-        }
-	}
 
 		void *SpActual = NULL;
 		Debug.printf("Free Stack at send_now is: %d \r\n", (uint32_t)&SpActual - (uint32_t)StackPtrEnd);
-
 
 		if (cfg::has_wifi && !wifi_connection_lost)
 		{
@@ -8184,23 +8049,38 @@ if(cfg::has_wifi && WiFi.status() == WL_CONNECTED){
 		{
 			add_Value2Json(data, F("latitude"), F("Latitude: "), GPSdata.latitude);
 			add_Value2Json(data, F("longitude"), F("Longitude: "), GPSdata.longitude);
-			add_Value2Json(data, F("altitude"), F("Altitude: "),GPSdata.altitude);
+			add_Value2Json(data, F("altitude"), F("Altitude: "), GPSdata.altitude);
 			String timestringgps;
 			timestringgps += String(GPSdata.year);
 			timestringgps += "-";
-			if (GPSdata.month < 10){timestringgps += "0";}
+			if (GPSdata.month < 10)
+			{
+				timestringgps += "0";
+			}
 			timestringgps += String(GPSdata.month);
 			timestringgps += "-";
-			if (GPSdata.day < 10){timestringgps += "0";}
+			if (GPSdata.day < 10)
+			{
+				timestringgps += "0";
+			}
 			timestringgps += String(GPSdata.day);
 			timestringgps += "T";
-			if (GPSdata.hour < 10){timestringgps += "0";}
+			if (GPSdata.hour < 10)
+			{
+				timestringgps += "0";
+			}
 			timestringgps += String(GPSdata.hour);
 			timestringgps += ":";
-			if (GPSdata.minute < 10){timestringgps += "0";}
+			if (GPSdata.minute < 10)
+			{
+				timestringgps += "0";
+			}
 			timestringgps += String(GPSdata.minute);
 			timestringgps += ":";
-			if (GPSdata.second < 10){timestringgps += "0";}
+			if (GPSdata.second < 10)
+			{
+				timestringgps += "0";
+			}
 			timestringgps += String(GPSdata.second);
 			timestringgps += "Z";
 			add_Value2Json(data, F("time_gps"), timestringgps);
@@ -8210,14 +8090,14 @@ if(cfg::has_wifi && WiFi.status() == WL_CONNECTED){
 		add_Value2Json(data, F("min_micro"), String(min_micro));
 		add_Value2Json(data, F("max_micro"), String(max_micro));
 
-
-	if(potValue < 2926)
-	{
-		add_Value2Json(data, F("interval"), String(cfg::sending_intervall_ms_mobile));
-	}else
-	{
-		add_Value2Json(data, F("interval"), String(cfg::sending_intervall_ms_static));
-	}
+		if (potValue < 2926)
+		{
+			add_Value2Json(data, F("interval"), String(cfg::sending_intervall_ms_mobile));
+		}
+		else
+		{
+			add_Value2Json(data, F("interval"), String(cfg::sending_intervall_ms_static));
+		}
 
 		if (cfg::has_wifi)
 		{
@@ -8237,7 +8117,6 @@ if(cfg::has_wifi && WiFi.status() == WL_CONNECTED){
 
 		add_Value2Json(data, F("rgpd"), String(cfg::rgpd));
 		add_Value2Json(data, F("type"), String(measure_type_nb));
-
 
 		if ((unsigned)(data.lastIndexOf(',') + 1) == data.length())
 		{
@@ -8309,9 +8188,9 @@ if(cfg::has_wifi && WiFi.status() == WL_CONNECTED){
 			datacsv += ";";
 			datacsv += String(last_value_BMX280_P);
 			datacsv += ";";
-			datacsv += String(GPSdata.latitude,8);
+			datacsv += String(GPSdata.latitude, 8);
 			datacsv += ";";
-			datacsv += String(GPSdata.longitude,8);
+			datacsv += String(GPSdata.longitude, 8);
 			datacsv += ";";
 			datacsv += String(GPSdata.altitude);
 			datacsv += ";";
@@ -8326,7 +8205,6 @@ if(cfg::has_wifi && WiFi.status() == WL_CONNECTED){
 		}
 
 		//"Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude\n"
-
 
 		if (cfg::has_led_value)
 		{
@@ -8625,8 +8503,8 @@ if(cfg::has_wifi && WiFi.status() == WL_CONNECTED){
 
 			if (cfg::has_lora && (!cfg::has_wifi || (cfg::has_wifi && wifi_connection_lost)) && !lora_connection_lost)
 			{
-				int32_t signal_diplay_lora = calcWiFiSignalQuality(last_signal_strength_lorawan);
-				displayColor_LoRa = interpolateSignal(signal_diplay_lora, 33, 66);
+				int32_t signal_display_lora = calcWiFiSignalQuality(last_signal_strength_lorawan);
+				displayColor_LoRa = interpolateSignal(signal_display_lora, 33, 66);
 				colorLED_lora = CRGB(displayColor_LoRa.R, displayColor_LoRa.G, displayColor_LoRa.B);
 
 				if (LEDS_NB == 1)
@@ -8739,43 +8617,47 @@ if(cfg::has_wifi && WiFi.status() == WL_CONNECTED){
 		count_sends++;
 
 		//changement de type de mesure seulement lors du send_now
-	
-	potValue = analogRead(POT_PIN); //FOnctionne si sur ADC1
-  	Debug.print("Potentiometer: ");
-	Debug.println(potValue);
 
-        switch (potValue)
-        {
-        case 0 ... 585:
+		potValue = analogRead(POT_PIN); //FOnctionne si sur ADC1
+		Debug.print("Potentiometer: ");
+		Debug.println(potValue);
+
+		switch (potValue)
+		{
+		case 0 ... 510:
 			measure_type_string = "Marche à pieds";
 			measure_type_nb = 0;
-            break;
-        case 586 ... 1170:
+			break;
+		case 511 ... 1020:
 			measure_type_string = "Vélo";
 			measure_type_nb = 1;
-            break;
-		case 1171 ... 1775:
+			break;
+		case 1021 ... 1530:
 			measure_type_string = "Moto/Scooter";
 			measure_type_nb = 2;
-            break;
-        case 1776 ... 2340:
+			break;
+		case 1531 ... 2040:
 			measure_type_string = "Voiture";
 			measure_type_nb = 3;
-            break;
-        case 2341 ... 2925:
+			break;
+		case 2041 ... 2550:
 			measure_type_string = "Transport en commun";
 			measure_type_nb = 4;
-            break;
-        case 2926 ... 3510:
-			measure_type_string = "Fixe intérieur";
+			break;
+		case 2551 ... 3060:
+			measure_type_string = "Mix";
 			measure_type_nb = 5;
-            break;
-        case 3511 ... 4095:
-			measure_type_string = "Fixe extérieur";
+			break;
+		case 3061 ... 3570:
+			measure_type_string = "Fixe intérieur";
 			measure_type_nb = 6;
-            break;
+			break;
+		case 3571 ... 4095:
+			measure_type_string = "Fixe extérieur";
+			measure_type_nb = 7;
+			break;
 		}
-	Debug.println(measure_type_string);
+		Debug.println(measure_type_string);
 	}
 
 	if (sample_count % 500 == 0)
