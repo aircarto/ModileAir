@@ -375,7 +375,7 @@ bool NPM_checksum_valid_16(const uint8_t (&data)[16]) {
 
 
 
-void NPM_cmd(PmSensorCmd2 cmd) {
+void NPM_cmd(PmSensorCmd cmd) {
 
 	static constexpr uint8_t state_cmd[] PROGMEM = { //read the current state
 		0x81, 0x16, 0x69
@@ -383,8 +383,10 @@ void NPM_cmd(PmSensorCmd2 cmd) {
 	static constexpr uint8_t change_cmd[] PROGMEM = { //change the sate alternatively start/stop
 		0x81, 0x15, 0x6A
 	};
-	static constexpr uint8_t concentration_cmd[] PROGMEM = { //No continous mode => repeat call
-		// 0x81, 0x11, 0x6E    //Concentrations reading’s averaged over 10 seconds and updated every 1 second
+	static constexpr uint8_t concentration_cmd_10sec[] PROGMEM = { //No continous mode => repeat call
+			0x81, 0x11, 0x6E    //Concentrations reading’s averaged over 10 seconds and updated every 1 second
+	};
+	static constexpr uint8_t concentration_cmd_1min[] PROGMEM = { //No continous mode => repeat call
 			0x81, 0x12, 0x6D    //Concentrations reading’s averaged over 60 seconds and updated every 10 seconds
 	};
 
@@ -409,22 +411,25 @@ void NPM_cmd(PmSensorCmd2 cmd) {
 	uint8_t buf[cmd_len];
 
 	switch (cmd) {
-	case PmSensorCmd2::State:
+	case PmSensorCmd::State:
 		memcpy_P(buf, state_cmd, cmd_len);
 		break;
-	case PmSensorCmd2::Change:
+	case PmSensorCmd::Change:
 		memcpy_P(buf, change_cmd, cmd_len);
 		break;
-	case PmSensorCmd2::Concentration:
-		memcpy_P(buf, concentration_cmd, cmd_len);
+	case PmSensorCmd::Concentration_10sec:
+		memcpy_P(buf, concentration_cmd_10sec, cmd_len);
 		break;
-	case PmSensorCmd2::Version:
+	case PmSensorCmd::Concentration_1min:
+		memcpy_P(buf, concentration_cmd_1min, cmd_len);
+		break;
+	case PmSensorCmd::Version:
 		memcpy_P(buf, version_cmd, cmd_len);
 		break;
-	case PmSensorCmd2::Speed:
+	case PmSensorCmd::Speed:
 		memcpy_P(buf, speed_cmd, cmd_len);
 		break;
-	case PmSensorCmd2::Temphumi:
+	case PmSensorCmd::Temphumi:
 		memcpy_P(buf, temphumi_cmd, cmd_len);
 		break;
 	}

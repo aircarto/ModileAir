@@ -160,23 +160,23 @@ namespace cfg
 	bool ssl_custom2 = SSL_CUSTOM2;
 	unsigned port_custom2 = PORT_CUSTOM2;
 	char user_custom2[LEN_USER_CUSTOM2] = USER_CUSTOM2;
-	char pwd_custom2[LEN_CFG_PASSWORD] = PWD_CUSTOM2;
+	char pwd_custom2[LEN_CFG_PASSWORD2] = PWD_CUSTOM2;
 
 	// API AirCarto NBIoT json
-	char host_nbiot_json[LEN_HOST_CUSTOM];
-	char url_nbiot_json[LEN_URL_CUSTOM];
-	bool ssl_nbiot_json = SSL_CUSTOM;
-	unsigned port_nbiot_json = PORT_CUSTOM;
-	char user_nbiot_json[LEN_USER_CUSTOM] = USER_CUSTOM;
-	char pwd_nbiot_json[LEN_CFG_PASSWORD] = PWD_CUSTOM;
+	char host_nbiot_json[LEN_HOST_NBIOT_JSON];
+	char url_nbiot_json[LEN_URL_NBIOT_JSON];
+	bool ssl_nbiot_json = SSL_NBIOT_JSON;
+	unsigned port_nbiot_json = PORT_NBIOT_JSON;
+	char user_nbiot_json[LEN_USER_NBIOT_JSON] = USER_NBIOT_JSON;
+	char pwd_nbiot_json[LEN_CFG_PASSWORD_NBIOT_JSON] = PWD_NBIOT_JSON;
 
 	// API AirCarto NBIoT byte
-	char host_nbiot_byte[LEN_HOST_CUSTOM];
-	char url_nbiot_byte[LEN_URL_CUSTOM];
-	bool ssl_nbiot_byte = SSL_CUSTOM;
-	unsigned port_nbiot_byte = PORT_CUSTOM;
-	char user_nbiot_byte[LEN_USER_CUSTOM] = USER_CUSTOM;
-	char pwd_nbiot_byte[LEN_CFG_PASSWORD] = PWD_CUSTOM;
+	char host_nbiot_byte[LEN_HOST_NBIOT_BYTE];
+	char url_nbiot_byte[LEN_URL_NBIOT_BYTE];
+	bool ssl_nbiot_byte = SSL_NBIOT_BYTE;
+	unsigned port_nbiot_byte = PORT_NBIOT_BYTE;
+	char user_nbiot_byte[LEN_USER_NBIOT_BYTE] = USER_NBIOT_BYTE;
+	char pwd_nbiot_byte[LEN_CFG_PASSWORD_NBIOT_BYTE] = PWD_NBIOT_BYTE;
 
 	// First load
 	void initNonTrivials(const char *id)
@@ -194,6 +194,11 @@ namespace cfg
 		strcpy_P(url_custom, URL_CUSTOM);
 		strcpy_P(host_custom2, HOST_CUSTOM2);
 		strcpy_P(url_custom2, URL_CUSTOM2);
+		strcpy_P(host_nbiot_json, HOST_NBIOT_JSON);
+		strcpy_P(url_nbiot_json, URL_NBIOT_JSON);
+		strcpy_P(host_nbiot_byte, HOST_NBIOT_BYTE);
+		strcpy_P(url_nbiot_byte, URL_NBIOT_BYTE);		
+
 
 		if (!*fs_ssid)
 		{
@@ -1221,7 +1226,7 @@ IPAddress ip(0, 0, 0, 0);
 uint8_t datanbiot[LEN_PAYLOAD_NBIOT] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 									   //conf |    npm   | 	 npm   | 	npm	   |   npm	   |	npm	   |	npm	     |	 cov    |    temp   | humi |   press   |  no2
 
-//27 valeur doit être a 0x00!!! zero terminator
+//47e valeur doit être a 0x00!!! zero terminator pour NBIOT
 
 // A VOIR
 
@@ -1236,6 +1241,16 @@ uint8_t datanbiot[LEN_PAYLOAD_NBIOT] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 // 	}
 // 	return false;
 // }
+
+
+
+/*****************************************************************
+ * Wifi as Byte                                    *
+ *****************************************************************/
+
+uint8_t datawifi[LEN_PAYLOAD_WIFI] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+//On essai à 46.
 
 /*****************************************************************
  * BMP/BME280 declaration                                        *
@@ -1384,7 +1399,7 @@ unsigned long WiFi_error_count;
 unsigned long last_page_load = millis();
 
 bool wificonfig_loop = false;
-// bool sntp_time_set = false;
+bool sntp_time_set = false;
 
 unsigned long count_sends = 0;
 uint8_t next_display_count = 0;
@@ -2590,6 +2605,7 @@ static void webserver_config_send_body_get(String &page_content)
 					  "<input form='main' class='radio' id='r6' name='group' type='radio'>"
 					  "<input form='main' class='radio' id='r7' name='group' type='radio'>"
 					  "<input form='main' class='radio' id='r8' name='group' type='radio'>"
+					  "<input form='main' class='radio' id='r9' name='group' type='radio'>"
 					  "<div class='tabs'>"
 					  "<label class='tab' id='tab1' for='r1'>");
 	page_content += FPSTR(INTL_WIFI_SETTINGS);
@@ -2738,13 +2754,14 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(4));
 
 	page_content += F("<b>" INTL_LOCATION "</b>&nbsp;");
-	page_content += FPSTR(WEB_B_BR_BR);
+	page_content += FPSTR("<br/>");
 	add_form_checkbox(Config_has_gps, FPSTR(INTL_GPS_ACTIVATION));
 	page_content += FPSTR(TABLE_TAG_OPEN);
 	add_form_input(page_content, Config_height_above_sealevel, FPSTR(INTL_HEIGHT_ABOVE_SEALEVEL), LEN_HEIGHT_ABOVE_SEALEVEL - 1);
 	page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 
 	page_content += F("<b>" INTL_LOGGER "</b>&nbsp;");
+	page_content += FPSTR("<br/>");
 	add_form_checkbox(Config_send2csv, FPSTR(WEB_CSV));
 	add_form_checkbox(Config_has_sdcard, FPSTR(WEB_SD));
 
@@ -2813,7 +2830,7 @@ static void webserver_config_send_body_get(String &page_content)
 
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(6));
 	page_content += F("<b>" INTL_OLED "</b>&nbsp;");
-	page_content += FPSTR(WEB_B_BR_BR);
+	page_content += FPSTR("<br/>");
 	add_form_checkbox(Config_has_ssd1306, FPSTR(INTL_SSD1306));
 	add_form_checkbox(Config_has_sh1106, FPSTR(INTL_SH1106));
 	add_form_checkbox(Config_display_measure, FPSTR(INTL_DISPLAY_MEASURES));
@@ -2912,17 +2929,19 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content = emptyString;
 
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(9));
-
-	//AJOUTER TEXTE, LIEN etc.
-
+	// page_content += "Lorem ipsum dolor sit amet";
 	add_form_checkbox(Config_rgpd, FPSTR(INTL_RGPD_ACCEPT));
+	server.sendContent(page_content);
+	page_content = emptyString;
 
 	//page_content += FPSTR(TABLE_TAG_CLOSE_BR);
-	page_content += F("</div></div>");
+	page_content = F("</div></div>");
 	page_content += form_submit(FPSTR(INTL_SAVE_AND_RESTART));
 	page_content += FPSTR(BR_TAG);
 	page_content += FPSTR("<br/>");
 	// page_content += FPSTR(WEB_BR_FORM);
+	// server.sendContent(page_content);
+	
 	if (wificonfig_loop)
 	{ // scan for wlan ssids
 		page_content += F("<script>window.setTimeout(load_wifi_list,1000);</script>");
@@ -4397,7 +4416,7 @@ static WiFiClientSecure *getNewLoggerWiFiClientSecure(const LoggerEntry logger)
 /*****************************************************************
  * send data to rest api                                         *
  *****************************************************************/
-static unsigned long sendDataWiFi(const LoggerEntry logger, const String &data, const int pin, const char *host, const char *url, bool ssl) //AJOUTER FORMAT ICI
+static unsigned long sendDataWiFi(const LoggerEntry logger, const String &data, const int pin, const char *host, const char *url, bool ssl)
 {
 
 	unsigned long start_send = millis();
@@ -4828,28 +4847,27 @@ static unsigned long sendSensorCommunity(const String &data, const int pin, cons
 	return sum_send_time;
 }
 
-//REVOIR ICI
 
-static unsigned long sendSensorCommunityNBIoT(const String &data, const int pin, const __FlashStringHelper *sensorname, const char *replace_str)
-{
-	unsigned long sum_send_time = 0;
+// static unsigned long sendSensorCommunityNBIoT(const String &data, const int pin, const __FlashStringHelper *sensorname, const char *replace_str)
+// {
+// 	unsigned long sum_send_time = 0;
 
-	if (cfg::send2dusti && data.length())
-	{
-		RESERVE_STRING(data_sensorcommunity, LARGE_STR);
-		data_sensorcommunity = FPSTR(data_first_part);
+// 	if (cfg::send2dusti && data.length())
+// 	{
+// 		RESERVE_STRING(data_sensorcommunity, LARGE_STR);
+// 		data_sensorcommunity = FPSTR(data_first_part);
 
-		debug_outln_info(F("## Sending to sensor.community - "), sensorname);
-		data_sensorcommunity += data;
-		data_sensorcommunity.remove(data_sensorcommunity.length() - 1);
-		data_sensorcommunity.replace(replace_str, emptyString);
-		data_sensorcommunity += "]}";
-		Debug.println(data_sensorcommunity);
-		sum_send_time = sendDataNBIoT(LoggerSensorCommunity, data_sensorcommunity, pin, HOST_SENSORCOMMUNITY, URL_SENSORCOMMUNITY, cfg::ssl_dusti);
-	}
+// 		debug_outln_info(F("## Sending to sensor.community - "), sensorname);
+// 		data_sensorcommunity += data;
+// 		data_sensorcommunity.remove(data_sensorcommunity.length() - 1);
+// 		data_sensorcommunity.replace(replace_str, emptyString);
+// 		data_sensorcommunity += "]}";
+// 		Debug.println(data_sensorcommunity);
+// 		sum_send_time = sendDataNBIoT(LoggerSensorCommunity, data_sensorcommunity, pin, HOST_SENSORCOMMUNITY, URL_SENSORCOMMUNITY, cfg::ssl_dusti);
+// 	}
 
-	return sum_send_time;
-}
+// 	return sum_send_time;
+// }
 
 /*****************************************************************
  * send data as csv to serial out                                *
@@ -5932,7 +5950,214 @@ static void setupNetworkTime()
 	strcpy_P(ntpServer1, NTP_SERVER_1);
 	strcpy_P(ntpServer2, NTP_SERVER_2);
 	configTime(0, 0, ntpServer1, ntpServer2);
+
+	unsigned long sync_time = millis ();
+
+
+while(!sntp_time_set && (millis()- sync_time < 30000)){
+    Debug.println("NTP wait for sync");
+	if(getLocalTime(&timeinfo))
+	{
+		sntp_time_set = true;
+		Debug.println("NTP sync!");
+		return;
+	}
 }
+
+Debug.println("NTP not sync!");
+
+
+}
+
+static void prepareTxFrameWiFi()
+{
+
+	//Take care of the endianess in the byte array!
+
+	// 00 00 00 c3
+	// C3 00 00 00 = -128.0 in Little Endian
+
+	// 00 00 80 bf
+	// bf 80 00 00 = -1.0 in Little Endian
+
+	union int16_2_byte
+	{
+		int16_t temp_int;
+		byte temp_byte[2];
+	} u1;
+
+	union float_2_byte
+	{
+		float temp_float;
+		byte temp_byte[4];
+	} u2;
+
+	union double_2_byte
+	{
+		double temp_double;
+		byte temp_byte[8];
+	} u3;
+
+	// union uint16_2_byte
+	// {
+	// 	uint16_t temp_uint;
+	// 	byte temp_byte[2];
+	// } u2;
+
+	// union float_2_byte
+	// {
+	// 	float temp_float;
+	// 	byte temp_byte[4];
+	// } u3;
+
+	//Take care of the signed/unsigned and endianess
+
+	//Inverser ordre pour les int16_t !
+
+	//datalora[0] is already defined and is 1 byte
+
+	if (lora_connection_lost && cfg::has_lora)
+	{
+		confignbiot[6] = false;
+		datawifi[0] = booltobyte(confignbiot); 
+	}
+
+	if (!lora_connection_lost && cfg::has_lora)
+	{
+		confignbiot[6] = true;
+		datawifi[0] = booltobyte(confignbiot); 
+	}
+
+	if (nbiot_connection_lost && cfg::has_nbiot)
+	{
+		configlorawan[6] = false;
+		datawifi[0] = booltobyte(configlorawan); 	
+	}
+
+	if (!nbiot_connection_lost && cfg::has_nbiot)
+	{
+		configlorawan[6] = true;
+		datawifi[0] = booltobyte(configlorawan); 	
+	}
+
+	if (last_value_NPM_P0 != -1.0)
+		u1.temp_int = (int16_t)round(last_value_NPM_P0 * 10);
+	else
+		u1.temp_int = (int16_t)round(last_value_NPM_P0);
+
+	datawifi[1] = u1.temp_byte[1];
+	datawifi[2] = u1.temp_byte[0];
+
+	if (last_value_NPM_P1 != -1.0)
+		u1.temp_int = (int16_t)round(last_value_NPM_P1 * 10);
+	else
+		u1.temp_int = (int16_t)round(last_value_NPM_P1);
+
+	datawifi[3] = u1.temp_byte[1];
+	datawifi[4] = u1.temp_byte[0];
+
+	if (last_value_NPM_P2 != -1.0)
+		u1.temp_int = (int16_t)round(last_value_NPM_P2 * 10);
+	else
+		u1.temp_int = (int16_t)round(last_value_NPM_P2);
+
+	datawifi[5] = u1.temp_byte[1];
+	datawifi[6] = u1.temp_byte[0];
+
+	if (last_value_NPM_N1 != -1.0)
+		u1.temp_int = (int16_t)round(last_value_NPM_N1 * 1000);
+	else
+		u1.temp_int = (int16_t)round(last_value_NPM_N1);
+
+	datawifi[7] = u1.temp_byte[1];
+	datawifi[8] = u1.temp_byte[0];
+
+	if (last_value_NPM_N10 != -1.0)
+		u1.temp_int = (int16_t)round(last_value_NPM_N10 * 1000);
+	else
+		u1.temp_int = (int16_t)round(last_value_NPM_N10);
+
+	datawifi[9] = u1.temp_byte[1];
+	datawifi[10] = u1.temp_byte[0];
+
+	if (last_value_NPM_N25 != -1.0)
+		u1.temp_int = (int16_t)round(last_value_NPM_N25 * 1000);
+	else
+		u1.temp_int = (int16_t)round(last_value_NPM_N25);
+
+	datawifi[11] = u1.temp_byte[1];
+	datawifi[12] = u1.temp_byte[0];
+
+	u1.temp_int = (int16_t)round(last_value_CCS811);
+
+	datawifi[13] = u1.temp_byte[1];
+	datawifi[14] = u1.temp_byte[0];
+
+	if (last_value_BMX280_T != -128.0)
+		u1.temp_int = (int16_t)round(last_value_BMX280_T * 10);
+	else
+		u1.temp_int = (int16_t)round(last_value_BMX280_T);
+
+	datawifi[15] = u1.temp_byte[1];
+	datawifi[16] = u1.temp_byte[0];
+
+	datawifi[17] = (int8_t)round(last_value_BME280_H);
+
+	u1.temp_int = (int16_t)round(last_value_BMX280_P);
+
+	datawifi[18] = u1.temp_byte[1];
+	datawifi[19] = u1.temp_byte[0];
+
+	u1.temp_int = (int16_t)round(last_value_no2);
+
+	datawifi[20] = u1.temp_byte[1];
+	datawifi[21] = u1.temp_byte[0];
+
+	u3.temp_double = GPSdata.latitude;
+
+	datawifi[22] = u3.temp_byte[0];
+	datawifi[23] = u3.temp_byte[1];
+	datawifi[24] = u3.temp_byte[2];
+	datawifi[25] = u3.temp_byte[3];
+	datawifi[26] = u3.temp_byte[4];
+	datawifi[27] = u3.temp_byte[5];
+	datawifi[28] = u3.temp_byte[6];
+	datawifi[29] = u3.temp_byte[7];
+
+	u3.temp_double = GPSdata.longitude;
+
+	datawifi[30] = u3.temp_byte[0];
+	datawifi[31] = u3.temp_byte[1];
+	datawifi[32] = u3.temp_byte[2];
+	datawifi[33] = u3.temp_byte[3];
+	datawifi[34] = u3.temp_byte[4];
+	datawifi[35] = u3.temp_byte[5];
+	datawifi[36] = u3.temp_byte[6];
+	datawifi[37] = u3.temp_byte[7];
+
+	u1.temp_int = (int16_t)round(GPSdata.altitude);
+
+	datawifi[38] = u1.temp_byte[1];
+	datawifi[39] = u1.temp_byte[0];
+
+	datawifi[40] = GPSdata.year;
+	datawifi[41] = GPSdata.month;
+	datawifi[42] = GPSdata.day;
+	datawifi[43] = GPSdata.hour;
+	datawifi[44] = GPSdata.minute;
+	datawifi[45] = GPSdata.second;
+
+	Debug.printf("HEX values:\n");
+	for (int i = 0; i < LEN_PAYLOAD_WIFI - 1; i++)
+	{
+		Debug.printf(" %02x", datawifi[i]);
+		if (i == LEN_PAYLOAD_WIFI - 2) //ou 22?
+		{
+			Debug.printf("\n");
+		}
+	}
+}
+
 
 static unsigned long sendDataToOptionalApisWiFi(const String &data)
 {
@@ -5946,7 +6171,7 @@ static unsigned long sendDataToOptionalApisWiFi(const String &data)
 		sum_send_time += sendDataWiFi(LoggerMadavi, data, 0, HOST_MADAVI, URL_MADAVI, cfg::ssl_madavi);
 	}
 
-	if (cfg::send2custom)
+	if (cfg::send2custom && cfg::wifi_format == 0)
 	{
 		String data_to_send = data;
 		data_to_send.remove(0, 1);
@@ -5958,7 +6183,7 @@ static unsigned long sendDataToOptionalApisWiFi(const String &data)
 		sum_send_time += sendDataWiFi(LoggerCustom, data_4_custom, 0, cfg::host_custom, cfg::url_custom, cfg::ssl_custom);
 	}
 
-	if (cfg::send2custom2)
+	if (cfg::send2custom2 && cfg::wifi_format == 0)
 	{
 		String data_to_send = data;
 		data_to_send.remove(0, 1);
@@ -5968,6 +6193,17 @@ static unsigned long sendDataToOptionalApisWiFi(const String &data)
 		data_4_custom += data_to_send;
 		debug_outln_info(FPSTR(DBG_TXT_SENDING_TO), F("atmosud api: "));
 		sum_send_time += sendDataWiFi(LoggerCustom2, data_4_custom, 0, cfg::host_custom2, cfg::url_custom2, cfg::ssl_custom2);
+	}
+
+
+	if (cfg::send2custom && cfg::wifi_format == 1)
+	{
+		prepareTxFrameWiFi();  //AJOUTER
+	}
+
+	if (cfg::send2custom2 && cfg::wifi_format == 1)
+	{
+		prepareTxFrameWiFi();	//AJOUTER
 	}
 
 	if (cfg::send2csv)
@@ -5989,7 +6225,7 @@ if (cfg::nbiot_format == 0)
 	{
 		String data_to_send = data;
 		data_to_send.remove(0, 1);
-		String data_4_custom(F("{\"nebuleairid\": \""));
+		String data_4_custom(F("{\"mobileairid\": \""));
 		data_4_custom += esp_chipid;
 		data_4_custom += "\", ";
 		data_4_custom += data_to_send;
@@ -6039,6 +6275,9 @@ void os_getDevKey(u1_t *buf) { memcpy_P(buf, appkey_hex, 16); }
 
 uint8_t datalora[LEN_PAYLOAD_LORA] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 //		    			              conf |    npm   | 	 npm   | 	npm	   |   npm	   |	npm	   |	npm	     |	 cov    |    temp   | humi |   press   |  no2    |                    lat
+
+
+//pour LoraWAN 1 byte de plus déclarée
 
 //Peut-être changer l'indianess pour temp = inverser
 
@@ -6357,14 +6596,6 @@ static void prepareTxFrameLoRa()
 		datalora[0] = booltobyte(configlorawan); //wifi OK et lora connecté => priorité wifi
 	}
 
-	//x10 to get 1 decimal for PM
-
-	// datalora[1] = u1.temp_byte[1];
-	// datalora[2] = u1.temp_byte[0];
-
-	// datalora[3] = u1.temp_byte[1];
-	// datalora[4] = u1.temp_byte[0];
-
 	if (last_value_NPM_P0 != -1.0)
 		u1.temp_int = (int16_t)round(last_value_NPM_P0 * 10);
 	else
@@ -6476,7 +6707,7 @@ static void prepareTxFrameLoRa()
 	for (int i = 0; i < LEN_PAYLOAD_LORA - 1; i++)
 	{
 		Debug.printf(" %02x", datalora[i]);
-		if (i == LEN_PAYLOAD_LORA - 2) //ou 22?
+		if (i == LEN_PAYLOAD_LORA - 2)
 		{
 			Debug.printf("\n");
 		}
@@ -6546,107 +6777,99 @@ static void prepareTxFrameNBIoT()
 	if (wifi_connection_lost && cfg::has_wifi)
 	{
 		confignbiot[7] = false;
-		datanbiot[0] = booltobyte(confignbiot); //wifi perdu et lora connecté
+		datanbiot[0] = booltobyte(confignbiot); //wifi perdu et nbiot connecté
 	}
 
 	if (!wifi_connection_lost && cfg::has_wifi)
 	{
 		confignbiot[7] = true;
-		datanbiot[0] = booltobyte(confignbiot); //wifi OK et lora connecté => priorité wifi
+		datanbiot[0] = booltobyte(confignbiot); //wifi OK et nbiot connecté => priorité wifi
 	}
 
 	if (lora_connection_lost && cfg::has_lora)
 	{
 		confignbiot[6] = false;
-		datanbiot[0] = booltobyte(confignbiot); //wifi perdu et lora connecté
+		datanbiot[0] = booltobyte(confignbiot); 
 	}
 
 	if (!lora_connection_lost && cfg::has_lora)
 	{
 		confignbiot[6] = true;
-		datanbiot[0] = booltobyte(confignbiot); //wifi OK et lora connecté => priorité wifi
+		datanbiot[0] = booltobyte(confignbiot); 
 	}
-
-	//x10 to get 1 decimal for PM
-
-	// datanbiot[1] = u1.temp_byte[1];
-	// datanbiot[2] = u1.temp_byte[0];
-
-	// datanbiot[3] = u1.temp_byte[1];
-	// datanbiot[4] = u1.temp_byte[0];
 
 	if (last_value_NPM_P0 != -1.0)
 		u1.temp_int = (int16_t)round(last_value_NPM_P0 * 10);
 	else
 		u1.temp_int = (int16_t)round(last_value_NPM_P0);
 
-	datanbiot[5] = u1.temp_byte[1];
-	datanbiot[6] = u1.temp_byte[0];
+	datanbiot[1] = u1.temp_byte[1];
+	datanbiot[2] = u1.temp_byte[0];
 
 	if (last_value_NPM_P1 != -1.0)
 		u1.temp_int = (int16_t)round(last_value_NPM_P1 * 10);
 	else
 		u1.temp_int = (int16_t)round(last_value_NPM_P1);
 
-	datanbiot[7] = u1.temp_byte[1];
-	datanbiot[8] = u1.temp_byte[0];
+	datanbiot[3] = u1.temp_byte[1];
+	datanbiot[4] = u1.temp_byte[0];
 
 	if (last_value_NPM_P2 != -1.0)
 		u1.temp_int = (int16_t)round(last_value_NPM_P2 * 10);
 	else
 		u1.temp_int = (int16_t)round(last_value_NPM_P2);
 
-	datanbiot[9] = u1.temp_byte[1];
-	datanbiot[10] = u1.temp_byte[0];
+	datanbiot[5] = u1.temp_byte[1];
+	datanbiot[6] = u1.temp_byte[0];
 
 	if (last_value_NPM_N1 != -1.0)
 		u1.temp_int = (int16_t)round(last_value_NPM_N1 * 1000);
 	else
 		u1.temp_int = (int16_t)round(last_value_NPM_N1);
 
-	datanbiot[11] = u1.temp_byte[1];
-	datanbiot[12] = u1.temp_byte[0];
+	datanbiot[7] = u1.temp_byte[1];
+	datanbiot[8] = u1.temp_byte[0];
 
 	if (last_value_NPM_N10 != -1.0)
 		u1.temp_int = (int16_t)round(last_value_NPM_N10 * 1000);
 	else
 		u1.temp_int = (int16_t)round(last_value_NPM_N10);
 
-	datanbiot[13] = u1.temp_byte[1];
-	datanbiot[14] = u1.temp_byte[0];
+	datanbiot[9] = u1.temp_byte[1];
+	datanbiot[10] = u1.temp_byte[0];
 
 	if (last_value_NPM_N25 != -1.0)
 		u1.temp_int = (int16_t)round(last_value_NPM_N25 * 1000);
 	else
 		u1.temp_int = (int16_t)round(last_value_NPM_N25);
 
-	datanbiot[15] = u1.temp_byte[1];
-	datanbiot[16] = u1.temp_byte[0];
+	datanbiot[11] = u1.temp_byte[1];
+	datanbiot[12] = u1.temp_byte[0];
 
 	u1.temp_int = (int16_t)round(last_value_CCS811);
 
-	datanbiot[17] = u1.temp_byte[1];
-	datanbiot[18] = u1.temp_byte[0];
+	datanbiot[13] = u1.temp_byte[1];
+	datanbiot[14] = u1.temp_byte[0];
 
 	if (last_value_BMX280_T != -128.0)
 		u1.temp_int = (int16_t)round(last_value_BMX280_T * 10);
 	else
 		u1.temp_int = (int16_t)round(last_value_BMX280_T);
 
-	datanbiot[19] = u1.temp_byte[1];
-	datanbiot[20] = u1.temp_byte[0];
+	datanbiot[15] = u1.temp_byte[1];
+	datanbiot[16] = u1.temp_byte[0];
 
-	datanbiot[21] = (int8_t)round(last_value_BME280_H);
+	datanbiot[17] = (int8_t)round(last_value_BME280_H);
 
 	u1.temp_int = (int16_t)round(last_value_BMX280_P);
 
-	datanbiot[22] = u1.temp_byte[1];
-	datanbiot[23] = u1.temp_byte[0];
+	datanbiot[18] = u1.temp_byte[1];
+	datanbiot[19] = u1.temp_byte[0];
 
 	u1.temp_int = (int16_t)round(last_value_no2);
 
-	datanbiot[24] = u1.temp_byte[1];
-	datanbiot[25] = u1.temp_byte[0];
+	datanbiot[20] = u1.temp_byte[1];
+	datanbiot[21] = u1.temp_byte[0];
 
 	u3.temp_double = GPSdata.latitude;
 
@@ -6686,209 +6909,201 @@ static void prepareTxFrameNBIoT()
 	for (int i = 0; i < LEN_PAYLOAD_NBIOT - 1; i++)
 	{
 		Debug.printf(" %02x", datanbiot[i]);
-		if (i == LEN_PAYLOAD_NBIOT - 2) //ou 22?
+		if (i == LEN_PAYLOAD_NBIOT - 2)
 		{
 			Debug.printf("\n");
 		}
 	}
 }
 
-static void prepareTxFrameWiFi()
-{
+// static void prepareTxFrameWiFi()
+// {
 
-	//Take care of the endianess in the byte array!
+// 	//Take care of the endianess in the byte array!
 
-	// 00 00 00 c3
-	// C3 00 00 00 = -128.0 in Little Endian
+// 	// 00 00 00 c3
+// 	// C3 00 00 00 = -128.0 in Little Endian
 
-	// 00 00 80 bf
-	// bf 80 00 00 = -1.0 in Little Endian
+// 	// 00 00 80 bf
+// 	// bf 80 00 00 = -1.0 in Little Endian
 
-	union int16_2_byte
-	{
-		int16_t temp_int;
-		byte temp_byte[2];
-	} u1;
+// 	union int16_2_byte
+// 	{
+// 		int16_t temp_int;
+// 		byte temp_byte[2];
+// 	} u1;
 
-	union float_2_byte
-	{
-		float temp_float;
-		byte temp_byte[4];
-	} u2;
+// 	union float_2_byte
+// 	{
+// 		float temp_float;
+// 		byte temp_byte[4];
+// 	} u2;
 
-	union double_2_byte
-	{
-		double temp_double;
-		byte temp_byte[8];
-	} u3;
+// 	union double_2_byte
+// 	{
+// 		double temp_double;
+// 		byte temp_byte[8];
+// 	} u3;
 
-	// union uint16_2_byte
-	// {
-	// 	uint16_t temp_uint;
-	// 	byte temp_byte[2];
-	// } u2;
+// 	// union uint16_2_byte
+// 	// {
+// 	// 	uint16_t temp_uint;
+// 	// 	byte temp_byte[2];
+// 	// } u2;
 
-	// union float_2_byte
-	// {
-	// 	float temp_float;
-	// 	byte temp_byte[4];
-	// } u3;
+// 	// union float_2_byte
+// 	// {
+// 	// 	float temp_float;
+// 	// 	byte temp_byte[4];
+// 	// } u3;
 
-	//Take care of the signed/unsigned and endianess
+// 	//Take care of the signed/unsigned and endianess
 
-	//Inverser ordre pour les int16_t !
+// 	//Inverser ordre pour les int16_t !
 
-	//datalora[0] is already defined and is 1 byte
+// 	//datalora[0] is already defined and is 1 byte
 
-	if (wifi_connection_lost && cfg::has_wifi)
-	{
-		confignbiot[7] = false;
-		datanbiot[0] = booltobyte(confignbiot); //wifi perdu et lora connecté
-	}
+// 	if (lora_connection_lost && cfg::has_lora)
+// 	{
+// 		confignbiot[6] = false;
+// 		datawifi[0] = booltobyte(confignbiot); 
+// 	}
 
-	if (!wifi_connection_lost && cfg::has_wifi)
-	{
-		confignbiot[7] = true;
-		datanbiot[0] = booltobyte(confignbiot); //wifi OK et lora connecté => priorité wifi
-	}
+// 	if (!lora_connection_lost && cfg::has_lora)
+// 	{
+// 		confignbiot[6] = true;
+// 		datawifi[0] = booltobyte(confignbiot); 
+// 	}
 
-	if (lora_connection_lost && cfg::has_lora)
-	{
-		confignbiot[6] = false;
-		datanbiot[0] = booltobyte(confignbiot); //wifi perdu et lora connecté
-	}
+// 	if (nbiot_connection_lost && cfg::has_nbiot)
+// 	{
+// 		configlorawan[6] = false;
+// 		datawifi[0] = booltobyte(configlorawan); 	
+// 	}
 
-	if (!lora_connection_lost && cfg::has_lora)
-	{
-		confignbiot[6] = true;
-		datanbiot[0] = booltobyte(confignbiot); //wifi OK et lora connecté => priorité wifi
-	}
+// 	if (!nbiot_connection_lost && cfg::has_nbiot)
+// 	{
+// 		configlorawan[6] = true;
+// 		datawifi[0] = booltobyte(configlorawan); 	
+// 	}
 
-	//x10 to get 1 decimal for PM
+// 	if (last_value_NPM_P0 != -1.0)
+// 		u1.temp_int = (int16_t)round(last_value_NPM_P0 * 10);
+// 	else
+// 		u1.temp_int = (int16_t)round(last_value_NPM_P0);
 
-	// datanbiot[1] = u1.temp_byte[1];
-	// datanbiot[2] = u1.temp_byte[0];
+// 	datawifi[1] = u1.temp_byte[1];
+// 	datawifi[2] = u1.temp_byte[0];
 
-	// datanbiot[3] = u1.temp_byte[1];
-	// datanbiot[4] = u1.temp_byte[0];
+// 	if (last_value_NPM_P1 != -1.0)
+// 		u1.temp_int = (int16_t)round(last_value_NPM_P1 * 10);
+// 	else
+// 		u1.temp_int = (int16_t)round(last_value_NPM_P1);
 
-	if (last_value_NPM_P0 != -1.0)
-		u1.temp_int = (int16_t)round(last_value_NPM_P0 * 10);
-	else
-		u1.temp_int = (int16_t)round(last_value_NPM_P0);
+// 	datawifi[3] = u1.temp_byte[1];
+// 	datawifi[4] = u1.temp_byte[0];
 
-	datanbiot[5] = u1.temp_byte[1];
-	datanbiot[6] = u1.temp_byte[0];
+// 	if (last_value_NPM_P2 != -1.0)
+// 		u1.temp_int = (int16_t)round(last_value_NPM_P2 * 10);
+// 	else
+// 		u1.temp_int = (int16_t)round(last_value_NPM_P2);
 
-	if (last_value_NPM_P1 != -1.0)
-		u1.temp_int = (int16_t)round(last_value_NPM_P1 * 10);
-	else
-		u1.temp_int = (int16_t)round(last_value_NPM_P1);
+// 	datawifi[5] = u1.temp_byte[1];
+// 	datawifi[6] = u1.temp_byte[0];
 
-	datanbiot[7] = u1.temp_byte[1];
-	datanbiot[8] = u1.temp_byte[0];
+// 	if (last_value_NPM_N1 != -1.0)
+// 		u1.temp_int = (int16_t)round(last_value_NPM_N1 * 1000);
+// 	else
+// 		u1.temp_int = (int16_t)round(last_value_NPM_N1);
 
-	if (last_value_NPM_P2 != -1.0)
-		u1.temp_int = (int16_t)round(last_value_NPM_P2 * 10);
-	else
-		u1.temp_int = (int16_t)round(last_value_NPM_P2);
+// 	datawifi[7] = u1.temp_byte[1];
+// 	datawifi[8] = u1.temp_byte[0];
 
-	datanbiot[9] = u1.temp_byte[1];
-	datanbiot[10] = u1.temp_byte[0];
+// 	if (last_value_NPM_N10 != -1.0)
+// 		u1.temp_int = (int16_t)round(last_value_NPM_N10 * 1000);
+// 	else
+// 		u1.temp_int = (int16_t)round(last_value_NPM_N10);
 
-	if (last_value_NPM_N1 != -1.0)
-		u1.temp_int = (int16_t)round(last_value_NPM_N1 * 1000);
-	else
-		u1.temp_int = (int16_t)round(last_value_NPM_N1);
+// 	datawifi[9] = u1.temp_byte[1];
+// 	datawifi[10] = u1.temp_byte[0];
 
-	datanbiot[11] = u1.temp_byte[1];
-	datanbiot[12] = u1.temp_byte[0];
+// 	if (last_value_NPM_N25 != -1.0)
+// 		u1.temp_int = (int16_t)round(last_value_NPM_N25 * 1000);
+// 	else
+// 		u1.temp_int = (int16_t)round(last_value_NPM_N25);
 
-	if (last_value_NPM_N10 != -1.0)
-		u1.temp_int = (int16_t)round(last_value_NPM_N10 * 1000);
-	else
-		u1.temp_int = (int16_t)round(last_value_NPM_N10);
+// 	datawifi[11] = u1.temp_byte[1];
+// 	datawifi[12] = u1.temp_byte[0];
 
-	datanbiot[13] = u1.temp_byte[1];
-	datanbiot[14] = u1.temp_byte[0];
+// 	u1.temp_int = (int16_t)round(last_value_CCS811);
 
-	if (last_value_NPM_N25 != -1.0)
-		u1.temp_int = (int16_t)round(last_value_NPM_N25 * 1000);
-	else
-		u1.temp_int = (int16_t)round(last_value_NPM_N25);
+// 	datawifi[13] = u1.temp_byte[1];
+// 	datawifi[14] = u1.temp_byte[0];
 
-	datanbiot[15] = u1.temp_byte[1];
-	datanbiot[16] = u1.temp_byte[0];
+// 	if (last_value_BMX280_T != -128.0)
+// 		u1.temp_int = (int16_t)round(last_value_BMX280_T * 10);
+// 	else
+// 		u1.temp_int = (int16_t)round(last_value_BMX280_T);
 
-	u1.temp_int = (int16_t)round(last_value_CCS811);
+// 	datawifi[15] = u1.temp_byte[1];
+// 	datawifi[16] = u1.temp_byte[0];
 
-	datanbiot[17] = u1.temp_byte[1];
-	datanbiot[18] = u1.temp_byte[0];
+// 	datawifi[17] = (int8_t)round(last_value_BME280_H);
 
-	if (last_value_BMX280_T != -128.0)
-		u1.temp_int = (int16_t)round(last_value_BMX280_T * 10);
-	else
-		u1.temp_int = (int16_t)round(last_value_BMX280_T);
+// 	u1.temp_int = (int16_t)round(last_value_BMX280_P);
 
-	datanbiot[19] = u1.temp_byte[1];
-	datanbiot[20] = u1.temp_byte[0];
+// 	datawifi[18] = u1.temp_byte[1];
+// 	datawifi[19] = u1.temp_byte[0];
 
-	datanbiot[21] = (int8_t)round(last_value_BME280_H);
+// 	u1.temp_int = (int16_t)round(last_value_no2);
 
-	u1.temp_int = (int16_t)round(last_value_BMX280_P);
+// 	datawifi[20] = u1.temp_byte[1];
+// 	datawifi[21] = u1.temp_byte[0];
 
-	datanbiot[22] = u1.temp_byte[1];
-	datanbiot[23] = u1.temp_byte[0];
+// 	u3.temp_double = GPSdata.latitude;
 
-	u1.temp_int = (int16_t)round(last_value_no2);
+// 	datawifi[22] = u3.temp_byte[0];
+// 	datawifi[23] = u3.temp_byte[1];
+// 	datawifi[24] = u3.temp_byte[2];
+// 	datawifi[25] = u3.temp_byte[3];
+// 	datawifi[26] = u3.temp_byte[4];
+// 	datawifi[27] = u3.temp_byte[5];
+// 	datawifi[28] = u3.temp_byte[6];
+// 	datawifi[29] = u3.temp_byte[7];
 
-	datanbiot[24] = u1.temp_byte[1];
-	datanbiot[25] = u1.temp_byte[0];
+// 	u3.temp_double = GPSdata.longitude;
 
-	u3.temp_double = GPSdata.latitude;
+// 	datawifi[30] = u3.temp_byte[0];
+// 	datawifi[31] = u3.temp_byte[1];
+// 	datawifi[32] = u3.temp_byte[2];
+// 	datawifi[33] = u3.temp_byte[3];
+// 	datawifi[34] = u3.temp_byte[4];
+// 	datawifi[35] = u3.temp_byte[5];
+// 	datawifi[36] = u3.temp_byte[6];
+// 	datawifi[37] = u3.temp_byte[7];
 
-	datanbiot[22] = u3.temp_byte[0];
-	datanbiot[23] = u3.temp_byte[1];
-	datanbiot[24] = u3.temp_byte[2];
-	datanbiot[25] = u3.temp_byte[3];
-	datanbiot[26] = u3.temp_byte[4];
-	datanbiot[27] = u3.temp_byte[5];
-	datanbiot[28] = u3.temp_byte[6];
-	datanbiot[29] = u3.temp_byte[7];
+// 	u1.temp_int = (int16_t)round(GPSdata.altitude);
 
-	u3.temp_double = GPSdata.longitude;
+// 	datawifi[38] = u1.temp_byte[1];
+// 	datawifi[39] = u1.temp_byte[0];
 
-	datanbiot[30] = u3.temp_byte[0];
-	datanbiot[31] = u3.temp_byte[1];
-	datanbiot[32] = u3.temp_byte[2];
-	datanbiot[33] = u3.temp_byte[3];
-	datanbiot[34] = u3.temp_byte[4];
-	datanbiot[35] = u3.temp_byte[5];
-	datanbiot[36] = u3.temp_byte[6];
-	datanbiot[37] = u3.temp_byte[7];
+// 	datawifi[40] = GPSdata.year;
+// 	datawifi[41] = GPSdata.month;
+// 	datawifi[42] = GPSdata.day;
+// 	datawifi[43] = GPSdata.hour;
+// 	datawifi[44] = GPSdata.minute;
+// 	datawifi[45] = GPSdata.second;
 
-	u1.temp_int = (int16_t)round(GPSdata.altitude);
-
-	datanbiot[38] = u1.temp_byte[1];
-	datanbiot[39] = u1.temp_byte[0];
-
-	datanbiot[40] = GPSdata.year;
-	datanbiot[41] = GPSdata.month;
-	datanbiot[42] = GPSdata.day;
-	datanbiot[43] = GPSdata.hour;
-	datanbiot[44] = GPSdata.minute;
-	datanbiot[45] = GPSdata.second;
-
-	Debug.printf("HEX values:\n");
-	for (int i = 0; i < LEN_PAYLOAD_NBIOT - 1; i++)
-	{
-		Debug.printf(" %02x", datanbiot[i]);
-		if (i == LEN_PAYLOAD_NBIOT - 2) //ou 22?
-		{
-			Debug.printf("\n");
-		}
-	}
-}
+// 	Debug.printf("HEX values:\n");
+// 	for (int i = 0; i < LEN_PAYLOAD_WIFI - 1; i++)
+// 	{
+// 		Debug.printf(" %02x", datawifi[i]);
+// 		if (i == LEN_PAYLOAD_WIFI - 2) //ou 22?
+// 		{
+// 			Debug.printf("\n");
+// 		}
+// 	}
+// }
 
 /*****************************************************************
  * Transmit                                                    *
@@ -7242,34 +7457,38 @@ void setup()
 
 	switch (potValue)
 	{
-	case 0 ... 585:
-		measure_type_string = "Marche à pieds";
-		measure_type_nb = 0;
-		break;
-	case 586 ... 1170:
-		measure_type_string = "Vélo";
-		measure_type_nb = 1;
-		break;
-	case 1171 ... 1775:
-		measure_type_string = "Moto/Scooter";
-		measure_type_nb = 2;
-		break;
-	case 1776 ... 2340:
-		measure_type_string = "Voiture";
-		measure_type_nb = 3;
-		break;
-	case 2341 ... 2925:
-		measure_type_string = "Transport en commun";
-		measure_type_nb = 4;
-		break;
-	case 2926 ... 3510:
-		measure_type_string = "Fixe intérieur";
-		measure_type_nb = 5;
-		break;
-	case 3511 ... 4095:
-		measure_type_string = "Fixe extérieur";
-		measure_type_nb = 6;
-		break;
+	case 0 ... 510:
+			measure_type_string = "Marche à pieds";
+			measure_type_nb = 0;
+			break;
+		case 511 ... 1020:
+			measure_type_string = "Vélo";
+			measure_type_nb = 1;
+			break;
+		case 1021 ... 1530:
+			measure_type_string = "Moto/Scooter";
+			measure_type_nb = 2;
+			break;
+		case 1531 ... 2040:
+			measure_type_string = "Voiture";
+			measure_type_nb = 3;
+			break;
+		case 2041 ... 2550:
+			measure_type_string = "Transport en commun";
+			measure_type_nb = 4;
+			break;
+		case 2551 ... 3060:
+			measure_type_string = "Mix";
+			measure_type_nb = 5;
+			break;
+		case 3061 ... 3570:
+			measure_type_string = "Fixe intérieur";
+			measure_type_nb = 6;
+			break;
+		case 3571 ... 4095:
+			measure_type_string = "Fixe extérieur";
+			measure_type_nb = 7;
+			break;
 	}
 
 	Debug.println(measure_type_string);
@@ -7412,9 +7631,9 @@ void setup()
 
 	if (cfg::has_wifi)
 	{
-		setupNetworkTime();
 		connectWifi();
 		setup_webserver();
+		setupNetworkTime();
 	}
 	else
 	{
@@ -7561,7 +7780,7 @@ if (cfg::nbiot_format == 0)
 		confignbiot[2] = cfg::ccs811_read;
 		confignbiot[3] = cfg::enveano2_read;
 		confignbiot[4] = cfg::rgpd;
-		confignbiot[5] = cfg::has_sdcard; //OUBIEN has gps && sd ???
+		confignbiot[5] = cfg::has_sdcard; //OUBIEN has gps && sd ??? OU BIEN GPS OK ???
 		confignbiot[6] = cfg::has_lora;
 		confignbiot[7] = cfg::has_wifi;
 		//si connection manquée => false
@@ -7677,9 +7896,9 @@ if (cfg::nbiot_format == 0)
 		{
 			// coordinates = true;
 			listDir(SD, "/", 0);
-			file_name = String("/") + String(GPSdata.year) + String("_") + String(GPSdata.month) + String("_") + String(GPSdata.day) + String("_") + String(GPSdata.hour) + String("_") + String(GPSdata.minute) + String("_") + String(GPSdata.second) + String(".csv");
+			file_name = String("/") + esp_chipid + String(GPSdata.year) + String("_") + String(GPSdata.month) + String("_") + String(GPSdata.day) + String("_") + String(GPSdata.hour) + String("_") + String(GPSdata.minute) + String("_") + String(GPSdata.second) + String(".csv");
 			writeFile(SD, file_name.c_str(), "");
-			appendFile(SD, file_name.c_str(), "Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude;Type\n");
+			appendFile(SD, file_name.c_str(), "MobileAir;Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude;Type\n");
 			Debug.println("Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude;Type\n");
 			file_created = true;
 		}
@@ -7689,7 +7908,67 @@ if (cfg::nbiot_format == 0)
 		}
 	}
 
-	// newGPSdata = false;
+
+//NTP PAR NBIOT?
+
+
+
+	if (!cfg::has_gps && cfg::has_wifi && sntp_time_set)
+	{
+
+		String timestringntp;
+
+		if (getLocalTime(&timeinfo) )
+			{
+				Debug.println(&timeinfo, "NTP Time: %d %B %Y %H:%M:%SZ");
+				timestringntp += "_20";
+				timestringntp += String(timeinfo.tm_year - 100);
+				timestringntp += "_";
+				if (timeinfo.tm_mon + 1 < 10)
+				{
+					timestringntp += "0";
+				}
+				timestringntp += String(timeinfo.tm_mon + 1);
+				timestringntp += "_";
+				if (timeinfo.tm_mday < 10)
+				{
+					timestringntp += "0";
+				}
+				timestringntp += String(timeinfo.tm_mday);
+				timestringntp += "_";
+				if (timeinfo.tm_hour < 10)
+				{
+					timestringntp += "0";
+				}
+				timestringntp += String(timeinfo.tm_hour);
+				timestringntp += "_";
+				if (timeinfo.tm_min < 10)
+				{
+					timestringntp += "0";
+				}
+				timestringntp += String(timeinfo.tm_min);
+				timestringntp += "_";
+				if (timeinfo.tm_sec < 10)
+				{
+					timestringntp += "0";
+				}
+				timestringntp += String(timeinfo.tm_sec);
+			}
+		
+	if (getLocalTime(&timeinfo) && cfg::has_sdcard && sdcard_found)
+		{
+			listDir(SD, "/", 0);
+			file_name = String("/") + esp_chipid + timestringntp + String(".csv");
+			writeFile(SD, file_name.c_str(), "");
+			appendFile(SD, file_name.c_str(), "MobileAir;Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Latitude;Longitude;Altitude;Type\n");
+			Debug.println("Date;NextPM_PM1;NextPM_PM2_5;NextPM_PM10;NextPM_NC1;NextPM_NC2_5;NextPM_NC10;CCS811_COV;Cairsens_NO2;BME280_T;BME280_H;BME280_P;Type\n");
+			file_created = true;
+		}
+		else
+		{
+			Debug.println("Can't create file!");
+		}
+	}
 
 	Debug.printf("End of void setup()\n");
 	starttime = starttime_waiter = millis();
@@ -7804,25 +8083,6 @@ void loop()
 		}
 	}
 
-	// Wait at least 30s for each NTP server to sync
-
-	// if (cfg::has_wifi && !wifi_connection_lost)
-	// {
-	// 	// if (!sntp_time_set && send_now && msSince(time_point_device_start_ms) < 1000 * 2 * 30 + 5000)
-	// 	if (!sntp_time_set && send_now)
-	// 	{
-	// 		debug_outln_info(F("NTP sync not finished yet, skipping send"));
-	// 		send_now = false;
-	// 		starttime = act_milli;
-	// 	}
-	// 	// debug_outln_info(F("Wait for NTP Sync"));
-	// 	// while(!sntp_time_set && send_now && msSince(time_point_device_start_ms) < 1000 * 2 * 30 + 5000)
-	// 	// {
-	// 	// 	send_now = false;
-	// 	// 	starttime = act_milli;
-	// 	// }
-	// 	// debug_outln_info(F("NTP synced!"));
-	// }
 
 	sample_count++;
 
@@ -7902,11 +8162,7 @@ void loop()
 		last_display_millis_oled = act_milli;
 	}
 
-	//AJOUTER BMX SAUF SI ON GARDE LE MODELE SC
-
-	//if (cfg::has_wifi && WiFi.waitForConnectResult(10000) == WL_CONNECTED)
-	//if (cfg::has_wifi && !wifi_connection_lost)
-	if (cfg::has_wifi && WiFi.status() == WL_CONNECTED)
+	if (cfg::has_wifi && WiFi.status() == WL_CONNECTED && (measure_type_nb == 6 || measure_type_nb ==7))
 	{
 		server.handleClient();
 		yield();
@@ -7985,6 +8241,9 @@ void loop()
 			last_signal_strength_lorawan = LMIC.rssi;
 		}
 
+
+		// On prepare un Json
+
 		RESERVE_STRING(data, LARGE_STR);
 		data = FPSTR(data_first_part);
 		//data_custom
@@ -7997,10 +8256,10 @@ void loop()
 			{
 				sum_send_time += sendSensorCommunity(result_NPM, NPM_API_PIN, FPSTR(SENSORS_NPM), "NPM_");
 			}
-			if (cfg::has_nbiot && !nbiot_connection_lost)
-			{
-				sum_send_time += sendSensorCommunityNBIoT(result_NPM, NPM_API_PIN, FPSTR(SENSORS_NPM), "NPM_");
-			}
+			// if (cfg::has_nbiot && !nbiot_connection_lost)
+			// {
+			// 	sum_send_time += sendSensorCommunityNBIoT(result_NPM, NPM_API_PIN, FPSTR(SENSORS_NPM), "NPM_");
+			// }
 		}
 
 		if (cfg::bmx280_read && (!bmx280_init_failed))
@@ -8013,10 +8272,10 @@ void loop()
 				{
 					sum_send_time += sendSensorCommunity(result, BME280_API_PIN, FPSTR(SENSORS_BME280), "BME280_");
 				}
-				if (cfg::has_nbiot && !nbiot_connection_lost)
-				{
-					sum_send_time += sendSensorCommunityNBIoT(result, BME280_API_PIN, FPSTR(SENSORS_BME280), "BME280_");
-				}
+				// if (cfg::has_nbiot && !nbiot_connection_lost)
+				// {
+				// 	sum_send_time += sendSensorCommunityNBIoT(result, BME280_API_PIN, FPSTR(SENSORS_BME280), "BME280_");
+				// }
 			}
 			else
 			{
@@ -8024,10 +8283,10 @@ void loop()
 				{
 					sum_send_time += sendSensorCommunity(result, BMP280_API_PIN, FPSTR(SENSORS_BMP280), "BMP280_");
 				}
-				if (cfg::has_nbiot && !nbiot_connection_lost)
-				{
-					sum_send_time += sendSensorCommunityNBIoT(result, BME280_API_PIN, FPSTR(SENSORS_BME280), "BMP280_");
-				}
+				// if (cfg::has_nbiot && !nbiot_connection_lost)
+				// {
+				// 	sum_send_time += sendSensorCommunityNBIoT(result, BME280_API_PIN, FPSTR(SENSORS_BME280), "BMP280_");
+				// }
 			}
 			result = emptyString;
 		}
@@ -8127,7 +8386,8 @@ void loop()
 		if (cfg::has_gps && cfg::has_sdcard && file_created)
 		{
 			RESERVE_STRING(datacsv, LARGE_STR);
-
+			datacsv += esp_chipid;
+			datacsv += ";";
 			datacsv += String(GPSdata.year);
 			datacsv += "-";
 
@@ -8165,6 +8425,89 @@ void loop()
 			}
 			datacsv += String(GPSdata.second);
 			datacsv += "Z";
+			datacsv += ";";
+			datacsv += String(last_value_NPM_P0);
+			datacsv += ";";
+			datacsv += String(last_value_NPM_P2);
+			datacsv += ";";
+			datacsv += String(last_value_NPM_P1);
+			datacsv += ";";
+			datacsv += String(last_value_NPM_N1);
+			datacsv += ";";
+			datacsv += String(last_value_NPM_N25);
+			datacsv += ";";
+			datacsv += String(last_value_NPM_N10);
+			datacsv += ";";
+			datacsv += String(last_value_CCS811);
+			datacsv += ";";
+			datacsv += String(last_value_no2);
+			datacsv += ";";
+			datacsv += String(last_value_BMX280_T);
+			datacsv += ";";
+			datacsv += String(last_value_BME280_H);
+			datacsv += ";";
+			datacsv += String(last_value_BMX280_P);
+			datacsv += ";";
+			datacsv += String(GPSdata.latitude, 8);
+			datacsv += ";";
+			datacsv += String(GPSdata.longitude, 8);
+			datacsv += ";";
+			datacsv += String(GPSdata.altitude);
+			datacsv += ";";
+			datacsv += String(measure_type_nb);
+			datacsv += "\n";
+
+			appendFile(SD, file_name.c_str(), datacsv.c_str());
+
+			Debug.println(datacsv);
+			count_recorded += 1;
+			last_datacsv_string = std::move(datacsv);
+		}
+
+if (!cfg::has_gps && cfg::has_wifi && sntp_time_set && cfg::has_sdcard && file_created)
+		{
+			RESERVE_STRING(datacsv, LARGE_STR);
+			datacsv += esp_chipid;
+			datacsv += ";";
+			// datacsv += String(GPSdata.year);
+			// datacsv += "-";
+
+			// if (GPSdata.month < 10)
+			// {
+			// 	datacsv += "0";
+			// }
+			// datacsv += String(GPSdata.month);
+			// datacsv += "-";
+
+			// if (GPSdata.day < 10)
+			// {
+			// 	datacsv += "0";
+			// }
+			// datacsv += String(GPSdata.day);
+
+			// datacsv += "T";
+			// if (GPSdata.hour < 10)
+			// {
+			// 	datacsv += "0";
+			// }
+			// datacsv += String(GPSdata.hour);
+			// datacsv += ":";
+
+			// if (GPSdata.minute < 10)
+			// {
+			// 	datacsv += "0";
+			// }
+			// datacsv += String(GPSdata.minute);
+			// datacsv += ":";
+
+			// if (GPSdata.second < 10)
+			// {
+			// 	datacsv += "0";
+			// }
+			// datacsv += String(GPSdata.second);
+			// datacsv += "Z";
+
+
 			datacsv += ";";
 			datacsv += String(last_value_NPM_P0);
 			datacsv += ";";
@@ -8316,6 +8659,8 @@ void loop()
 		{
 			sum_send_time += sendDataToOptionalApisWiFi(data);
 
+			//AJOUTER UN ENDPOINT WIFI/BYTE???
+
 			sending_time = (3 * sending_time + sum_send_time) / 4;
 
 			if (sum_send_time > 0)
@@ -8377,6 +8722,7 @@ void loop()
 				debug_outln_info(F("Time for Sending NBIoT(ms): "), String(sending_time));
 			}
 		}
+
 
 		// only do a restart after finishing sending (Wifi). Befor Lora to avoid conflicts with the LMIC
 		if (msSince(time_point_device_start_ms) > DURATION_BEFORE_FORCED_RESTART_MS)

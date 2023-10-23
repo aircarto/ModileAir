@@ -59,16 +59,11 @@ namespace cfg {
 
 #define serialNPM (Serial1) 
 
-enum class PmSensorCmd {
-	Start,
-	Stop,
-	ContinuousMode
-};
-
-enum class PmSensorCmd2 { // for NPM
+enum class PmSensorCmd { // for NPM
 	State,
 	Change,
-	Concentration,
+	Concentration_10sec,
+	Concentration_1min,
 	Version,
 	Speed,
 	Temphumi
@@ -105,7 +100,7 @@ extern void debug_outln_info(const __FlashStringHelper* text, float value);
 extern void debug_outln_verbose(const __FlashStringHelper* text, const String& option);
 extern void debug_outln_info_bool(const __FlashStringHelper* text, const bool option);
 
-extern void NPM_cmd(PmSensorCmd2 cmd);
+extern void NPM_cmd(PmSensorCmd cmd);
 extern bool NPM_checksum_valid_4(const uint8_t (&data)[4]);
 extern bool NPM_checksum_valid_5(const uint8_t (&data)[5]);
 extern bool NPM_checksum_valid_6(const uint8_t (&data)[6]);

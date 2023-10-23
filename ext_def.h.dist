@@ -8,7 +8,7 @@ const char WLANPWD[] PROGMEM = "XXXXXXXXXXX";
 
 #define TIME_FOR_WIFI_CONFIG 120000;
 #define SENDING_INTERVALL_MS_STATIC 120000;
-#define SENDING_INTERVALL_MS_MOBILE 120000;
+#define SENDING_INTERVALL_MS_MOBILE 10000;
 
 // BasicAuth config
 const char WWW_USERNAME[] PROGMEM = "admin";
@@ -53,6 +53,8 @@ enum LoggerEntry {
     LoggerMadavi,
     LoggerCustom,
     LoggerCustom2,
+    LoggerNBIoTJson,
+    LoggerNBIoTByte,
     LoggerCount
 };
 
@@ -91,7 +93,23 @@ static const char URL_CUSTOM2[] PROGMEM = "/data.php";
 #define PWD_CUSTOM2 ""
 #define SSL_CUSTOM2 0
 
-#define PM_SERIAL_RX D39
+// API NBIoT json
+static const char HOST_NBIOT_JSON[] PROGMEM = "data.nebuleair.fr";
+static const char URL_NBIOT_JSON[] PROGMEM = "/nbiotjson.php";
+#define PORT_NBIOT_JSON 80
+#define USER_NBIOT_JSON ""
+#define PWD_NBIOT_JSON ""
+#define SSL_NBIOT_JSON 0
+
+// API NBIoT byte
+static const char HOST_NBIOT_BYTE[] PROGMEM = "data.nebuleair.fr";
+static const char URL_NBIOT_BYTE[] PROGMEM = "/nbiotbyte.php";
+#define PORT_NBIOT_BYTE 80
+#define USER_NBIOT_BYTE ""
+#define PWD_NBIOT_BYTE ""
+#define SSL_NBIOT_BYTE 0
+
+#define PM_SERIAL_RX D39 
 #define PM_SERIAL_TX D32 
 
 #define NBIOT_SERIAL_RX D36
@@ -106,7 +124,8 @@ static const char URL_CUSTOM2[] PROGMEM = "/data.php";
 #define I2C_PIN_SCL D22
 #define I2C_PIN_SDA D21
 
-#define LED_PIN D33
+#define POT_PIN D33  //D2
+#define LED_PIN D2  //D33
 
 // Tera Sensor Next PM sensor
 #define NPM_READ 0
@@ -151,5 +170,6 @@ static const char URL_API_SENSORCOMMUNITY[] PROGMEM = "https://data.sensor.commu
 
 #define HAS_GPS 0
 #define HAS_SDCARD 0
+
 
 
