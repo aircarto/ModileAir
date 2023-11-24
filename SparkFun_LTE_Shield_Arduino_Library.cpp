@@ -70,7 +70,6 @@ const char LTE_SHIELD_COMMAND_GPIO[] = "+UGPIOC"; // GPIO Configuration
 const char LTE_SHIELD_CREATE_SOCKET[] = "+USOCR";  // Create a new socket
 const char LTE_SHIELD_CLOSE_SOCKET[] = "+USOCL";   // Close a socket
 const char LTE_SHIELD_CONNECT_SOCKET[] = "+USOCO"; // Connect to server on socket
-const char LTE_SHIELD_SEND_TO_UDP_SOCKET[] = "+USOST";
 const char LTE_SHIELD_WRITE_SOCKET[] = "+USOWR";   // Write data to a socket
 const char LTE_SHIELD_READ_SOCKET[] = "+USORD";    // Read from a socket
 const char LTE_SHIELD_LISTEN_SOCKET[] = "+USOLI";  // Listen for connection on socket
@@ -615,6 +614,49 @@ int8_t LTE_Shield::rssi(void)
     return rssi;
 }
 
+
+int8_t LTE_Shield::qual(void)
+{
+    char *command;
+    char *response;
+    LTE_Shield_error_t err;
+    int qual;
+
+    command = lte_calloc_char(strlen(LTE_SHIELD_SIGNAL_QUALITY) + 1);
+    if (command == NULL)
+        return LTE_SHIELD_ERROR_OUT_OF_MEMORY;
+    sprintf(command, "%s", LTE_SHIELD_SIGNAL_QUALITY);
+
+    response = lte_calloc_char(48);
+    if (response == NULL)
+    {
+        free(command);
+        return LTE_SHIELD_ERROR_OUT_OF_MEMORY;
+    }
+
+    err = sendCommandWithResponse(command,
+                                  LTE_SHIELD_RESPONSE_OK, response, 10000, AT_COMMAND);
+    if (err != LTE_SHIELD_ERROR_SUCCESS)
+    {
+        free(command);
+        free(response);
+        return -1;
+    }
+
+    if (sscanf(response, "\r\n+CSQ: %*d,%d", &qual) != 1)
+    {
+        qual = -1;
+    }
+
+    free(command);
+    free(response);
+    return qual;
+}
+
+
+
+
+
 LTE_Shield_registration_status_t LTE_Shield::registration(void)
 {
     char *command;
@@ -889,7 +931,8 @@ uint8_t LTE_Shield::getOperators(struct operator_stats *opRet, int maxOps)
         char longOp[26];
         char shortOp[11];
         int act;
-        unsigned long numOp;
+        // unsigned long numOp;
+        unsigned int numOp;
 
         opBegin = response;
 
@@ -902,8 +945,9 @@ uint8_t LTE_Shield::getOperators(struct operator_stats *opRet, int maxOps)
             if (opEnd == NULL)
                 break;
 
-            int sscanRead = sscanf(opBegin, "(%d,\"%[^\"]\",\"%[^\"]\",\"%lu\",%d)%*s",
-                                   &stat, longOp, shortOp, &numOp, &act);
+            // int sscanRead = sscanf(opBegin, "(%d,\"%[^\"]\",\"%[^\"]\",\"%lu\",%d)%*s",&stat, longOp, shortOp, &numOp, &act);
+            int sscanRead = sscanf(opBegin, "(%d,\"%[^\"]\",\"%[^\"]\",\"%u\",%d)%*s",&stat, longOp, shortOp, &numOp, &act);
+
             if (sscanRead == 5)
             {
                 opRet[op].stat = stat;
@@ -928,6 +972,20 @@ uint8_t LTE_Shield::getOperators(struct operator_stats *opRet, int maxOps)
     return opsSeen;
 }
 
+
+LTE_Shield_error_t LTE_Shield::setModeFormat(uint8_t mode, uint8_t format)
+{
+    char *command;
+    command = lte_calloc_char(strlen(LTE_SHIELD_OPERATOR_SELECTION) + 10);
+    if (command == NULL)
+        return LTE_SHIELD_ERROR_OUT_OF_MEMORY;
+    sprintf(command, "%s=%u,%u", LTE_SHIELD_OPERATOR_SELECTION,mode,format);
+    Debug.printf("%s=%u,%u", LTE_SHIELD_OPERATOR_SELECTION,mode,format);
+    sendCommand(command, AT_COMMAND);
+    free(command);
+    return LTE_SHIELD_ERROR_SUCCESS;
+}
+
 LTE_Shield_error_t LTE_Shield::registerOperator(struct operator_stats oper)
 {
     LTE_Shield_error_t err;
@@ -937,6 +995,25 @@ LTE_Shield_error_t LTE_Shield::registerOperator(struct operator_stats oper)
     if (command == NULL)
         return LTE_SHIELD_ERROR_OUT_OF_MEMORY;
     sprintf(command, "%s=1,2,\"%lu\"", LTE_SHIELD_OPERATOR_SELECTION, oper.numOp);
+
+    // AT+COPS maximum response time is 3 minutes (180000 ms)
+    err = sendCommandWithResponse(command, LTE_SHIELD_RESPONSE_OK, NULL,
+                                  180000);
+
+    free(command);
+    return err;
+}
+
+LTE_Shield_error_t LTE_Shield::registerOperatorWithNumber(unsigned int oper)
+{
+    LTE_Shield_error_t err;
+    char *command;
+
+    command = lte_calloc_char(strlen(LTE_SHIELD_OPERATOR_SELECTION) + 24);
+    if (command == NULL)
+        return LTE_SHIELD_ERROR_OUT_OF_MEMORY;
+    sprintf(command, "%s=1,2,\"%lu\"", LTE_SHIELD_OPERATOR_SELECTION, oper);
+    Debug.printf("%s=1,2,\"%lu\"", LTE_SHIELD_OPERATOR_SELECTION, oper);
 
     // AT+COPS maximum response time is 3 minutes (180000 ms)
     err = sendCommandWithResponse(command, LTE_SHIELD_RESPONSE_OK, NULL,
@@ -997,7 +1074,7 @@ LTE_Shield_error_t LTE_Shield::getOperator(String *oper)
                         oper->concat(*(searchPtr));
                     }
                 }
-                //Serial.println("Operator: " + *oper);
+                //Debug.println("Operator: " + *oper);
                 //oper->concat('\0');
             }
         }
@@ -1879,7 +1956,7 @@ LTE_Shield_error_t LTE_Shield::sendCommandWithResponse(
         if (hwAvailable())
         {
             char c = readChar();
-            //Debug.write(c);
+            //Debug.print(c);
             if (responseDest != NULL)
             {
                 responseDest[destIndex++] = c;

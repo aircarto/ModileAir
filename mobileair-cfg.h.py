@@ -6,7 +6,7 @@ UInt        wifi_format
 Bool        has_lora
 Bool        has_nbiot
 String		apn
-Bool        config_nbiot
+UInt		operateur
 UInt        nbiot_format
 Hex		    appeui
 Hex 		deveui

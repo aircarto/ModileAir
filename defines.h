@@ -21,9 +21,9 @@
 
 #define LEN_WLANSSID 35				// credentials for wifi connection
 
-#define LEN_APN 15	
-
+#define LEN_APN 15
 #define LEN_LTE 10	
+#define LEN_OPERATEUR 6
 
 #define LEN_WWW_USERNAME 65			// credentials for basic auth of server internal website
 

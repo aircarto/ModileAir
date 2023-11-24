@@ -100,6 +100,7 @@ namespace cfg
 
 	// NBIoT
 	char apn[LEN_APN];
+	unsigned operateur;
 	unsigned nbiot_format = NBIOT_FORMAT;
 
 	// main config
@@ -107,7 +108,6 @@ namespace cfg
 	unsigned wifi_format = WIFI_FORMAT;
 	bool has_lora = HAS_LORA;
 	bool has_nbiot = HAS_NBIOT;
-	bool config_nbiot = CONFIG_NBIOT;
 	char appeui[LEN_APPEUI];
 	char deveui[LEN_DEVEUI];
 	char appkey[LEN_APPKEY];
@@ -186,6 +186,7 @@ namespace cfg
 		strcpy_P(deveui, DEVEUI);
 		strcpy_P(appkey, APPKEY);
 		strcpy_P(apn, APN);
+		operateur = OPERATEUR;
 		strcpy_P(www_username, WWW_USERNAME);
 		strcpy_P(www_password, WWW_PASSWORD);
 		strcpy_P(wlanssid, WLANSSID);
@@ -2698,14 +2699,9 @@ static void webserver_config_send_body_get(String &page_content)
 
 	page_content = tmpl(FPSTR(WEB_DIV_PANEL), String(3));
 
-	if (cfg::config_nbiot && cfg::has_nbiot)
-	{ // scan for LTE networks
-		page_content += F("<div id='ltelist'>" INTL_LTE_NETWORKS "</div><br/>");
-	}
-
 	page_content += FPSTR("\n");
 	add_form_checkbox(Config_has_nbiot, FPSTR(INTL_NBIOT_ACTIVATION));
-	// page_content += FPSTR("<br/>");
+
 
 	if (cfg::has_nbiot)
 	{
@@ -2713,6 +2709,7 @@ static void webserver_config_send_body_get(String &page_content)
 		{
 			page_content += FPSTR(TABLE_TAG_OPEN);
 			add_form_input(page_content, Config_apn, FPSTR("APN"), LEN_APN - 1);
+			add_form_input(page_content, Config_operateur, FPSTR("Operateur choisi"), LEN_OPERATEUR - 1);
 			add_form_input_nbiot(page_content, FPSTR(INTL_LTE_NETWORK_FOUND), currentOperator, LEN_LTE - 1);
 			page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 		}
@@ -2723,19 +2720,9 @@ static void webserver_config_send_body_get(String &page_content)
 			add_form_input_nbiot(page_content, FPSTR(INTL_LTE_NETWORK_NOT_FOUND), FPSTR(""), LEN_LTE - 1);
 			page_content += FPSTR(TABLE_TAG_CLOSE_BR);
 		}
-
-		if (cfg::config_nbiot)
-		{
-			page_content += FPSTR(INTL_NBIOT_NUMBER);
-			page_content += F("<input form='secondar' type='number' name='lteid' id='lteid' maxlength='3'/>");
-			page_content += F("<form id='secondar' method='POST' action='/setlte'></form><input form='secondar' type='submit' value='" INTL_SAVE_NBIOT "'/>");
-			page_content += FPSTR("<br/>");
-		}
 	}
 	else
 	{
-		// page_content += FPSTR(INTL_NBIOT_MUST_ACTIVATE);
-		// page_content += FPSTR("<br/>");
 		page_content += FPSTR(TABLE_TAG_OPEN);
 		add_form_input(page_content, Config_apn, FPSTR("APN"), LEN_APN - 1);
 		page_content += FPSTR(TABLE_TAG_CLOSE_BR);
@@ -2746,8 +2733,6 @@ static void webserver_config_send_body_get(String &page_content)
 	page_content += FPSTR("<br/>");
 	page_content += FPSTR(INTL_NBIOT_EXPLANATION);
 	page_content += FPSTR(WEB_B_BR_BR);
-	add_form_checkbox(Config_config_nbiot, FPSTR(INTL_NBIOT_CONFIGURATION));
-	page_content += FPSTR("<br/>");
 	add_radio_input(page_content, Config_nbiot_format, FPSTR(INTL_NBIOT_DATA_FORMAT));
 	server.sendContent(page_content);
 
@@ -2946,10 +2931,6 @@ static void webserver_config_send_body_get(String &page_content)
 	{ // scan for wlan ssids
 		page_content += F("<script>window.setTimeout(load_wifi_list,1000);</script>");
 	}
-	if (cfg::config_nbiot && cfg::has_nbiot)
-	{ // scan for wlan ssids
-		page_content += F("<script>window.setTimeout(load_lte_list,1000);</script>");
-	}
 	server.sendContent(page_content);
 	page_content = emptyString;
 }
@@ -3081,11 +3062,6 @@ static void webserver_config()
 		page_content += FPSTR(WEB_CONFIG_SCRIPT);
 	}
 
-	if (cfg::config_nbiot && cfg::has_nbiot)
-	{ // scan for wlan ssids
-		page_content += FPSTR(LTE_CONFIG_SCRIPT);
-	}
-
 	if (server.method() == HTTP_GET)
 	{
 		webserver_config_send_body_get(page_content);
@@ -3173,197 +3149,6 @@ static void webserver_wifi()
 		page_content += FPSTR(BR_TAG);
 	}
 	server.send(200, FPSTR(TXT_CONTENT_TYPE_TEXT_HTML), page_content);
-}
-
-/*****************************************************************
- * Webserver lte: show available LTE networks                  *
- *****************************************************************/
-
-// void printInfo(void)
-// {
-// 	String currentApn = "";
-// 	IPAddress ip(0, 0, 0, 0);
-
-// 	Debug.println(F("Connection info:"));
-// 	// APN Connection info: APN name and IP
-// 	if (lte.getAPN(&currentApn, &ip) == LTE_SHIELD_SUCCESS)
-// 	{
-// 		Debug.println("APN: " + String(currentApn));
-// 		Debug.print("IP: ");
-// 		Debug.println(ip);
-// 	}
-
-// 	// Operator name or number
-// 	if (lte.getOperator(&currentOperator) == LTE_SHIELD_SUCCESS)
-// 	{
-// 		Debug.print("Operator: ");
-// 		Debug.println(currentOperator);
-// 	}
-
-// 	// Received signal strength
-// 	Debug.println("RSSI: " + String(lte.rssi()));
-// 	Debug.println();
-// }
-
-static void webserver_lte()
-{
-	String page_content;
-
-	bool newConnection = true;
-
-	debug_outln_info(F("Initializing the LTE Shield..."));
-	debug_outln_info(F("...this may take ~25 seconds if the shield is off."));
-	debug_outln_info(F("...it may take ~5 seconds if it just turned on."));
-
-	//this function should be launched only if success in setup
-
-	if (lte.getOperator(&currentOperator) == LTE_SHIELD_SUCCESS)
-	{
-		Debug.print("Already connected to: ");
-		Debug.println(currentOperator);
-	}
-	else
-	{
-		Debug.print("Not connected!");
-	}
-
-	if (newConnection)
-	{
-		// Set MNO to either Verizon, T-Mobile, AT&T, Telstra, etc.
-		// This will narrow the operator options during our scan later
-		Debug.println("Setting mobile-network operator");
-		if (lte.setNetwork(MOBILE_NETWORK_OPERATOR))
-		{
-			Debug.print("Set mobile network operator to ");
-			Debug.println(MOBILE_NETWORK_STRINGS[MOBILE_NETWORK_OPERATOR]);
-		}
-		else
-		{
-			Debug.println("Error setting MNO. Try cycling power to the shield/Arduino.");
-			cfg::has_nbiot = false; //deactivate
-		}
-
-		// Set the APN -- Access Point Name -- e.g. "hologram"
-		Debug.println("Setting APN...");
-		if (lte.setAPN(cfg::apn) == LTE_SHIELD_SUCCESS)
-		{
-			Debug.println("APN successfully set.\r\n");
-		}
-		else
-		{
-			Debug.println("Error setting APN. Try cycling power to the shield/Arduino.");
-			cfg::has_nbiot = false;
-		}
-
-		Debug.println("Scanning for operators...this may take up to 3 minutes\r\n");
-		// lte.getOperators takes in a operator_stats struct pointer and max number of
-		// structs to scan for, then fills up those objects with operator names and numbers
-		opsAvailable = lte.getOperators(ops, MAX_OPERATORS); // This will block for up to 3 minutes
-
-		// struct operator_stats
-		// {
-		//     uint8_t stat;
-		//     String shortOp;
-		//     String longOp;
-		//     unsigned long numOp;
-		//     uint8_t act;
-		// };
-
-		if (opsAvailable == 0)
-		{
-			page_content += FPSTR(BR_TAG);
-			page_content += FPSTR(INTL_NO_LTE_NETWORKS);
-			page_content += FPSTR(BR_TAG);
-			Debug.println("Did not find an operator. Double-check SIM and antenna, reset and try again, or try another network.");
-			cfg::has_nbiot = false;
-		}
-		else
-		{
-			debug_outln_info(F("LTE networks found: "), String(opsAvailable));
-			std::unique_ptr<int[]> indices(new int[opsAvailable]);
-			debug_outln_info(F("ws: lte ..."));
-			for (unsigned i = 0; i < opsAvailable; ++i)
-			{
-				indices[i] = i;
-			}
-
-			page_content += FPSTR(INTL_NETWORKS_FOUND);
-			page_content += String(opsAvailable);
-			page_content += FPSTR(BR_TAG);
-			page_content += FPSTR(BR_TAG);
-			page_content += FPSTR(TABLE_TAG_OPEN);
-
-			for (int i = 0; i < opsAvailable; ++i)
-			{
-				if (indices[i] == -1)
-				{
-					continue;
-				}
-				page_content += lte_to_table_row(i, ops[indices[i]].longOp, ops[indices[i]].numOp, ops[indices[i]].stat);
-			}
-			page_content += FPSTR(TABLE_TAG_CLOSE_BR);
-			page_content += FPSTR(BR_TAG);
-		}
-		server.send(200, FPSTR(TXT_CONTENT_TYPE_TEXT_HTML), page_content);
-	}
-}
-
-static void webserver_setlte()
-{
-	if (server.hasArg("lteid"))
-	{
-		Debug.print("Network choice: ");
-		Debug.println(server.arg("lteid"));
-
-		if (opsAvailable > 0)
-		{
-			if ((server.arg("lteid").toInt() >= 0) && (server.arg("lteid").toInt() <= opsAvailable))
-			{
-				Serial.println("Connecting to option " + server.arg("lteid"));
-				if (lte.registerOperator(ops[server.arg("lteid").toInt()]) == LTE_SHIELD_SUCCESS)
-				{
-					Serial.println("Network " + ops[server.arg("lteid").toInt()].longOp + " registered\r\n");
-				}
-				else
-				{
-					Serial.println(F("Error connecting to operator. Reset and try again, or try another network."));
-				}
-			}
-		}
-		else
-		{
-			Serial.println(F("Did not find an operator. Double-check SIM and antenna, reset and try again, or try another network."));
-			cfg::has_nbiot = false;
-		}
-		cfg::config_nbiot = false;
-	}
-
-	//RELOAD ALL After
-
-	if (WiFi.status() != WL_CONNECTED)
-	{
-		sendHttpRedirect();
-	}
-	else
-	{
-		if (!webserver_request_auth())
-		{
-			return;
-		}
-
-		RESERVE_STRING(page_content, XLARGE_STR);
-		start_html_page(page_content, emptyString);
-		debug_outln_info(F("ws: root ..."));
-
-		// Enable Pagination
-		page_content += FPSTR(WEB_ROOT_PAGE_CONTENT);
-		page_content.replace(F("{t}"), FPSTR(INTL_CURRENT_DATA));
-		page_content.replace(F("{s}"), FPSTR(INTL_DEVICE_STATUS));
-		page_content.replace(F("{conf}"), FPSTR(INTL_CONFIGURATION));
-		page_content.replace(F("{restart}"), FPSTR(INTL_RESTART_SENSOR));
-		page_content.replace(F("{debug}"), FPSTR(INTL_DEBUG_LEVEL));
-		end_html_page(page_content);
-	}
 }
 
 /*****************************************************************
@@ -3979,7 +3764,6 @@ static void setup_webserver()
 	server.on("/", webserver_root);
 	server.on(F("/config"), webserver_config);
 	server.on(F("/wifi"), webserver_wifi);
-	server.on(F("/lte"), webserver_lte);
 	server.on(F("/values"), webserver_values);
 	server.on(F("/status"), webserver_status);
 	server.on(F("/generate_204"), webserver_config);
@@ -3988,7 +3772,6 @@ static void setup_webserver()
 	server.on(F("/serial"), webserver_serial);
 	server.on(F("/removeConfig"), webserver_removeConfig);
 	server.on(F("/reset"), webserver_reset);
-	server.on(F("/setlte"), webserver_setlte);
 	server.on(F("/data.json"), webserver_data_json);
 	server.on(F("/metrics"), webserver_metrics_endpoint);
 	server.on(F("/favicon.ico"), webserver_favicon);
@@ -5953,7 +5736,6 @@ static void setupNetworkTime()
 
 	unsigned long sync_time = millis ();
 
-
 while(!sntp_time_set && (millis()- sync_time < 30000)){
     Debug.println("NTP wait for sync");
 	if(getLocalTime(&timeinfo))
@@ -5963,10 +5745,7 @@ while(!sntp_time_set && (millis()- sync_time < 30000)){
 		return;
 	}
 }
-
 Debug.println("NTP not sync!");
-
-
 }
 
 static void prepareTxFrameWiFi()
@@ -7456,7 +7235,9 @@ void setup()
 
 	Debug.println(F("Starting"));
 
-	potValue = analogRead(POT_PIN); //Must happen before the wifi starts
+	//potValue = analogRead(POT_PIN); //Must happen before the wifi starts
+	potValue = 4095;
+
 	Debug.print("Potentiometer: ");
 	Debug.println(potValue);
 
@@ -7545,13 +7326,217 @@ void setup()
 		//serialNBIOT.setTimeout(5000); //to test ?
 		//IL VA FALLOIR TIMEOUTER ICI
 
-		//AJOUTER LE MESSAGE DE TEST DE DEMARRAGE NBIOT???
-
 		if (lte.begin(serialNBIOT, 9600, SERIAL_8N1, NBIOT_SERIAL_RX, NBIOT_SERIAL_TX))
 		{
 			Debug.println("LTE Shield connected!");
 			Debug.println("Sparkfun SARA-R4 NBIoT... serialNBIOT 9600 8N1");
 			nbiot_connection_lost = false;
+
+			if (lte.setModeFormat() == LTE_SHIELD_SUCCESS)
+			{
+				Debug.print("Set mode and format!");
+			}
+			else
+			{
+				Debug.print("Can't set mode and format!");
+				cfg::has_nbiot = false;
+			}
+
+			delay(5000);
+
+			if (lte.getOperator(&currentOperator) == LTE_SHIELD_SUCCESS)
+			{
+				Debug.println(currentOperator);
+				Debug.println(atoi(currentOperator.c_str()));
+				Debug.println(cfg::operateur);
+				Debug.println(atoi(currentOperator.c_str()) == cfg::operateur);
+
+				if (atoi(currentOperator.c_str()) != cfg::operateur)
+				{
+				if (lte.registerOperatorWithNumber(cfg::operateur) == LTE_SHIELD_SUCCESS)
+					{
+						Debug.println("Network Orange registered\r\n");
+					}
+					else
+					{
+						Debug.println(F("Error connecting to operator. Reset and try again, or try another network."));
+						cfg::has_nbiot = false;
+					}
+				}
+				else
+				{
+					Debug.print("Orange is currrent operator!");
+				}
+			}
+			else
+			{
+				Debug.print("Current operator can't be found!");
+				cfg::has_nbiot = false;
+			}
+
+			delay(5000);
+
+			if (lte.getAPN(&currentApn, &ip) == LTE_SHIELD_SUCCESS)
+			{
+			Debug.println(String(currentApn));
+			Debug.println(cfg::apn);
+			Debug.println(String(currentApn) == cfg::apn);
+
+			if(String(currentApn) != cfg::apn)
+			{
+					if (lte.setAPN(cfg::apn) == LTE_SHIELD_SUCCESS)
+					{
+						Debug.println("APN Hologram successfully set.\r\n");
+					}
+					else
+					{
+						Debug.println("Error setting APN. Try cycling power to the shield/Arduino.");
+						cfg::has_nbiot = false;
+					}
+			}else{
+					Debug.println("Hologram is now currrent APN!");
+					Debug.print("IP: ");
+					Debug.println(ip);
+			}
+			}
+			else
+			{
+				Debug.print("Current APN can't be found!");
+
+				if (lte.setAPN(cfg::apn) == LTE_SHIELD_SUCCESS)
+				{
+					Debug.println("APN Hologram now successfully set.\r\n");
+				}
+				else
+				{
+					Debug.println("Error setting APN. Try cycling power to the shield/Arduino.");
+					cfg::has_nbiot = false;
+				}
+			}
+
+			delay(5000);
+
+			// Received signal strength
+        Debug.println("RSSI: " + String(lte.rssi()));
+		Debug.println("Quality: " + String(lte.qual()));
+        Debug.println();
+
+        if (cfg::nbiot_format == 0)
+        {
+            Debug.println("Set profile API Aircarto");
+
+            if (lte.setHost(0, cfg::host_nbiot_json) == LTE_SHIELD_SUCCESS)
+            {
+                Debug.print("Host 0: ");
+                Debug.println(cfg::host_nbiot_json);
+            }
+
+            if (cfg::ssl_nbiot_json)
+            {
+
+                if (lte.setCAroot(ca_aircarto, "certAircarto") == LTE_SHIELD_SUCCESS)
+                {
+                    Debug.println("CA AirCarto set up!");
+                }
+
+                if (lte.setSecProfile1(0) == LTE_SHIELD_SUCCESS)
+                {
+                    Debug.println("Set security profile 1");
+                }
+
+                if (lte.setSecProfile2(0, "certAircarto") == LTE_SHIELD_SUCCESS)
+                {
+                    Debug.println("Set security profile 2");
+                }
+
+                if (lte.setSSL(0, 0) == LTE_SHIELD_SUCCESS)
+                {
+                    Debug.println("SSL API AirCarto");
+                }
+            }
+            
+            if (lte.setPort(0, loggerConfigs[LoggerNBIoTJson].destport) == LTE_SHIELD_SUCCESS)
+            {
+                Debug.print("Port 0: ");
+                Debug.println(loggerConfigs[LoggerNBIoTJson].destport);
+            }
+
+            if (lte.setHeader(0, "0:Content-Type:application/json") == LTE_SHIELD_SUCCESS)
+            {
+                Debug.print("Header 0/0: ");
+                Debug.println("0:Content-Type:application/json");
+            }
+
+        }
+
+        if (cfg::nbiot_format == 1)
+        {
+            Debug.println("Set profile API Aircarto");
+
+            if (lte.setHost(0, cfg::host_nbiot_byte) == LTE_SHIELD_SUCCESS)
+            {
+                Debug.print("Host 0: ");
+                Debug.println(cfg::host_nbiot_byte);
+            }
+
+            if (cfg::ssl_nbiot_byte)
+            {
+
+                if (lte.setCAroot(ca_aircarto, "certAircarto") == LTE_SHIELD_SUCCESS)
+                {
+                    Debug.println("CA AirCarto set up!");
+                }
+
+                if (lte.setSecProfile1(0) == LTE_SHIELD_SUCCESS)
+                {
+                    Debug.println("Set security profile 1");
+                }
+
+                if (lte.setSecProfile2(0, "certAircarto") == LTE_SHIELD_SUCCESS)
+                {
+                    Debug.println("Set security profile 2");
+                }
+
+                if (lte.setSSL(0, 0) == LTE_SHIELD_SUCCESS)
+                {
+                    Debug.println("SSL API AirCarto");
+                }
+            }
+            
+            if (lte.setPort(0, loggerConfigs[LoggerNBIoTByte].destport) == LTE_SHIELD_SUCCESS)
+            {
+                Debug.print("Port 0: ");
+                Debug.println(loggerConfigs[LoggerNBIoTByte].destport);
+            }
+
+                if (lte.setHeader(0, "0:Content-Type:application/octet-stream") == LTE_SHIELD_SUCCESS)
+                {
+                    Debug.print("Header 0/0: ");
+                    Debug.println("0:Content-Type:application/octet-stream");
+                }
+
+                String headerstr01 = "1:SensorID:" + esp_chipid;
+
+                if (lte.setHeader(0, headerstr01.c_str()) == LTE_SHIELD_SUCCESS)
+                {
+                    Debug.print("Header 0/1: ");
+                    Debug.println(headerstr01);
+                }
+        }
+
+	configlorawan[0] = cfg::npm_read;
+	configlorawan[1] = cfg::bmx280_read;
+	configlorawan[2] = cfg::ccs811_read;
+	configlorawan[3] = cfg::enveano2_read;
+	configlorawan[4] = cfg::rgpd;
+	configlorawan[5] = cfg::has_sdcard;
+	configlorawan[6] = cfg::has_lora;
+	configlorawan[7] = cfg::has_wifi;
+
+        Debug.print("Configuration:");
+        Debug.println(booltobyte(confignbiot));
+        datanbiot[0] = booltobyte(confignbiot);
+
 		}
 		else
 		{
@@ -8013,6 +7998,9 @@ void loop()
 	{
 		send_now = msSince(starttime) > cfg::sending_intervall_ms_static;
 	}
+
+		//send_now = msSince(starttime) > cfg::sending_intervall_ms_static;
+
 
 	//REVOIR ICI SYN NTP!!!!
 
@@ -8977,13 +8965,14 @@ if (!cfg::has_gps && cfg::has_wifi && sntp_time_set && cfg::has_sdcard && file_c
 
 		//changement de type de mesure seulement lors du send_now
 
-		potValue = analogRead(POT_PIN); //FOnctionne si sur ADC1
+		//potValue = analogRead(POT_PIN); //FOnctionne si sur ADC1
+		potValue = 4095;
 		Debug.print("Potentiometer: ");
 		Debug.println(potValue);
 
 		switch (potValue)
 		{
-		case 0 ... 510:
+			case 0 ... 510:
 			measure_type_string = "Marche à pieds";
 			measure_type_nb = 0;
 			break;
