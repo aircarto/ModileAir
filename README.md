@@ -151,8 +151,8 @@ Before the flashing, the folder SPImod has to be removed.
 |GPIO33| Selector |  |
 |GPIO34| 📶 lora DIO2 |  |
 |GPIO35| 📶 lora DIO1 |  |
-|GPIO36| 📞 SARA-R4 RX | |
-|GPIO39| 💨 NextPM TX |  |
+|GPIO36 / SVP| 📞 SARA-R4 RX | |
+|GPIO39 / SVN| 💨 NextPM TX |  |
 
 ## PCB
 
