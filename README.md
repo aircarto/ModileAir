@@ -125,7 +125,7 @@ Before the flashing, the folder SPImod has to be removed.
 |GPI01| TX | USB Serial |
 |GPIO2| 💡LEDs | Inboard LED |
 |GPIO3| RX | USB Serial |
-|GPIO4| 💾 SD NSS |  |
+|GPIO4| 💾 SD NSS // 📞 SARA-R4 POWER |  |
 |GPIO5| 📶 lora NSS |  |
 |GPIO6| &#x1F6D1; | integrated SPI flash |
 |GPIO7| &#x1F6D1; | integrated SPI flash |
@@ -134,11 +134,11 @@ Before the flashing, the folder SPImod has to be removed.
 |GPIO10| &#x1F6D1; | integrated SPI flash |
 |GPIO11| &#x1F6D1; | integrated SPI flash |
 |GPIO12| 💾  SD MISO |  |
-|GPIO13| 💾  SD MOSI|  |
+|GPIO13| 💾  SD MOSI // 📞 SARA-R4 RESET|  |
 |GPIO14| 💾  SD SCK|  |
 |GPIO15| 📡 GPS TX |  |
-|GPIO16| Cairsens RX |  |
-|GPIO17| Cairsens TX |  |
+|GPIO16| Cairsens NO2 RX |  |
+|GPIO17| Cairsens NO2 TX |  |
 |GPIO18| 📶 lora SCK |  |
 |GPIO19| 📶 lora MISO |  |
 |GPIO21| SDA sensors |  |
@@ -146,13 +146,13 @@ Before the flashing, the folder SPImod has to be removed.
 |GPIO23| 📶 lora MOSI |  |
 |GPIO25| 📡 GPS RX |  |
 |GPIO26| 📶 lora DIO0 |  |
-|GPIO27| SARA-R4 TX | |
-|GPIO32| NextPM RX |  |
+|GPIO27| 📞 SARA-R4 TX | |
+|GPIO32| 💨 NextPM RX |  |
 |GPIO33| Selector |  |
 |GPIO34| 📶 lora DIO2 |  |
 |GPIO35| 📶 lora DIO1 |  |
-|GPIO36| SARA-R4 RX | |
-|GPIO39| NextPM TX |  |
+|GPIO36| 📞 SARA-R4 RX | |
+|GPIO39| 💨 NextPM TX |  |
 
 ## PCB
 
