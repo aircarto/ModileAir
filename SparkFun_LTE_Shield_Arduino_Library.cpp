@@ -71,6 +71,7 @@ const char LTE_SHIELD_CREATE_SOCKET[] = "+USOCR";  // Create a new socket
 const char LTE_SHIELD_CLOSE_SOCKET[] = "+USOCL";   // Close a socket
 const char LTE_SHIELD_CONNECT_SOCKET[] = "+USOCO"; // Connect to server on socket
 const char LTE_SHIELD_WRITE_SOCKET[] = "+USOWR";   // Write data to a socket
+///////sdasdsadasdasdasdas
 const char LTE_SHIELD_READ_SOCKET[] = "+USORD";    // Read from a socket
 const char LTE_SHIELD_LISTEN_SOCKET[] = "+USOLI";  // Listen for connection on socket
 
